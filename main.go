@@ -39,17 +39,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// fmt.Printf("%#v", c)
 	wg := &sync.WaitGroup{}
 	wg.Add(len(c.Devices))
-	for _, d := range c.Devices {
-		go runCommands(d, wg)
+	for n, d := range c.Devices {
+		go runCommands(d, wg, n)
 	}
 	wg.Wait()
 
 }
 
-func runCommands(d Device, wg *sync.WaitGroup) {
+func runCommands(d Device, wg *sync.WaitGroup, name string) {
 	defer wg.Done()
 	driver, err := core.NewCoreDriver(
 		d.Address,
@@ -82,7 +81,7 @@ func runCommands(d Device, wg *sync.WaitGroup) {
 		return
 	}
 
-	color.Green("\n**************************\n%s\n**************************\n", d.Address)
+	color.Green("\n**************************\n%s\n**************************\n", name)
 	for idx, cmd := range d.SendCommands {
 		c := color.New(color.Bold)
 		c.Printf("\n-- %s:\n", cmd)
