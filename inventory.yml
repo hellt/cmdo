@@ -1,0 +1,18 @@
+devices:
+  sros:
+    platform: nokia_sros
+    address: clab-scrapli-sros
+    username: admin
+    password: admin
+    send-commands:
+      - show version
+      - show router interface
+  eos:
+    platform: arista_eos
+    address: clab-scrapli-ceos
+    username: admin
+    password: admin
+    priv-exec-auth: false
+    send-commands:
+      - show version
+      - show uptime
