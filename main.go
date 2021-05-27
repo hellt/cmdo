@@ -39,16 +39,25 @@ func main() {
 		log.Fatal(err)
 	}
 
+	rCh := make(chan *base.MultiResponse)
+
 	wg := &sync.WaitGroup{}
 	wg.Add(len(c.Devices))
 	for n, d := range c.Devices {
-		go runCommands(d, wg, n)
+		go runCommands(wg, n, d, rCh)
 	}
+
+	for n, d := range c.Devices {
+		resp := <-rCh
+		wg.Add(1)
+		go outputResult(wg, n, d, resp)
+	}
+
 	wg.Wait()
 
 }
 
-func runCommands(d Device, wg *sync.WaitGroup, name string) {
+func runCommands(wg *sync.WaitGroup, name string, d Device, rCh chan<- *base.MultiResponse) {
 	defer wg.Done()
 	driver, err := core.NewCoreDriver(
 		d.Address,
@@ -60,27 +69,32 @@ func runCommands(d Device, wg *sync.WaitGroup, name string) {
 	)
 
 	if err != nil {
-		log.Errorf("failed to create driver; error: %+v\n", err)
+		log.Errorf("failed to create driver for device %s; error: %+v\n", err, name)
 		return
 	}
 
 	err = driver.Open()
 	if err != nil {
-		log.Errorf("failed to open driver; error: %+v\n", err)
+		log.Errorf("failed to open connection to device %s; error: %+v\n", err, name)
 		return
 	}
 
 	r, err := driver.SendCommands(d.SendCommands)
 	if err != nil {
-		log.Errorf("failed to send commands; error: %+v\n", err)
+		log.Errorf("failed to send commands to device %s; error: %+v\n", err, name)
 		return
 	}
 
+	rCh <- r
+
+}
+
+func outputResult(wg *sync.WaitGroup, name string, d Device, r *base.MultiResponse) {
+	defer wg.Done()
 	color.Green("\n**************************\n%s\n**************************\n", name)
 	for idx, cmd := range d.SendCommands {
 		c := color.New(color.Bold)
 		c.Printf("\n-- %s:\n", cmd)
 		fmt.Println(r.Responses[idx].Result)
 	}
-
 }
