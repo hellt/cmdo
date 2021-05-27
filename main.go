@@ -23,11 +23,11 @@ type Device struct {
 	Address      string   `yaml:"address,omitempty"`
 	Username     string   `yaml:"username,omitempty"`
 	Password     string   `yaml:"password,omitempty"`
-	PrivExecAuth *bool    `yaml:"priv-exec-auth,omitempty"`
 	SendCommands []string `yaml:"send-commands,omitempty"`
 }
 
 func main() {
+	// logging.SetDebugLogger(log.Print)
 	c := &Config{}
 	yamlFile, err := ioutil.ReadFile("inventory.yml")
 	if err != nil {
@@ -62,11 +62,6 @@ func runCommands(d Device, wg *sync.WaitGroup, name string) {
 	if err != nil {
 		log.Errorf("failed to create driver; error: %+v\n", err)
 		return
-	}
-
-	// set the authentication for privilege exec level
-	if d.PrivExecAuth != nil {
-		driver.PrivilegeLevels["privilege_exec"].EscalateAuth = *d.PrivExecAuth
 	}
 
 	err = driver.Open()

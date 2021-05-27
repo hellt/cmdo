@@ -12,7 +12,6 @@ devices:
     address: clab-scrapli-ceos
     username: admin
     password: admin
-    priv-exec-auth: false
     send-commands:
       - show version
       - show uptime

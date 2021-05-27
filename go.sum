@@ -14,6 +14,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/scrapli/scrapligo v0.0.0-20210525201948-51f194b2e010 h1:/JsnYRpS0yqA5Pkwc3EIXMsQ4nWQUl167gMhjIFPQY0=
 github.com/scrapli/scrapligo v0.0.0-20210525201948-51f194b2e010/go.mod h1:itZE+qsyMvCMnxccsxMX4ATFqVLDIG/Mw4po4msqwpo=
+github.com/scrapli/scrapligo v0.0.0-20210527153325-f3f552e04327 h1:2z5S2VFATQ5CWhzTjGbBu3Z+g4pW/wU1L088uf2S4U8=
+github.com/scrapli/scrapligo v0.0.0-20210527153325-f3f552e04327/go.mod h1:itZE+qsyMvCMnxccsxMX4ATFqVLDIG/Mw4po4msqwpo=
 github.com/sirupsen/logrus v1.8.1 h1:dJKuHgqk1NNQlqoA6BTlM1Wf9DOH3NBjQyu0h9+AZZE=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
