@@ -11,8 +11,13 @@ Commando is a tiny tool that enables users to collect command outputs from a ran
 Using the sudo-less installation script makes it easy to download pre-built binary to the current working directory under `cmdo` name:
 
 ```bash
+# for linux and darwin OSes
 bash -c "$(curl -sL https://raw.githubusercontent.com/hellt/cmdo/master/get.sh)"
 ```
+
+Windows users are encouraged to use WSL, but if it is not possible, the `.exe` file can be found in [Releases](https://github.com/hellt/cmdo/releases) section.
+
+Linux users can leverage pre-built deb/rpm packages that are also available in the Releases section.
 
 ## Quickstart
 1. Create an `inventory.yml` file with the devices information. An example [inventory.yml](inventory.yml) file lists three different platforms.
