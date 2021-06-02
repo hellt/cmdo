@@ -56,8 +56,12 @@ func (app *appCfg) fromArgs(args []string) error {
 	fl.StringVar(&app.inventory, "i", "inventory.yml", "path to the inventory file")
 	fl.StringVar(&app.output, "o", "file", "print output to: [file, stdout]")
 	fl.BoolVar(&app.timestamp, "t", false, "append timestamp to output directory")
+	ver := fl.Bool("v", false, "show version information")
 	if err := fl.Parse(args); err != nil {
 		return err
+	}
+	if *ver {
+		showVersion()
 	}
 
 	return nil
@@ -145,4 +149,11 @@ func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d device, rCh ch
 func (app *appCfg) outputResult(wg *sync.WaitGroup, rw responseWriter, name string, d device, r *base.MultiResponse) {
 	defer wg.Done()
 	rw.WriteResponse(r, name, d, app)
+}
+
+func showVersion() {
+	fmt.Printf("    version: %s\n", version)
+	fmt.Printf("     commit: %s\n", commit)
+	fmt.Printf("     source: %s\n", "https://github.com/hellt/cmdo")
+	os.Exit(0)
 }
