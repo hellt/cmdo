@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/hellt/cmdo/cmdo"
+	cmdo "github.com/hellt/cmdo/app"
 )
 
 func main() {

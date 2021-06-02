@@ -57,6 +57,9 @@ func (app *appCfg) fromArgs(args []string) error {
 	fl.StringVar(&app.output, "o", "file", "print output to: [file, stdout]")
 	fl.BoolVar(&app.timestamp, "t", false, "append timestamp to output directory")
 	ver := fl.Bool("v", false, "show version information")
+	if len(args) == 0 {
+		args = append(args, "-h")
+	}
 	if err := fl.Parse(args); err != nil {
 		return err
 	}
