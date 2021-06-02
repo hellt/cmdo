@@ -17,6 +17,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var version string
+var commit string
+
 type inventory struct {
 	Devices map[string]device `yaml:"devices,omitempty"`
 }

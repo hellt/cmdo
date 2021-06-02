@@ -1,0 +1,49 @@
+builds:
+  - env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/hellt/cmdo/cmdo.version={{.Version}} -X github.com/hellt/cmdo/cmdo.commit={{.ShortCommit}}
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm
+      - arm64
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      amd64: x86_64
+      386: i386
+      arm: armv7
+      arm64: aarch64
+checksum:
+  name_template: checksums.txt
+snapshot:
+  name_template: "{{ .Tag }}-next"
+publishers:
+  - name: fury.io deb/rpm packages
+    ids:
+      - cmdo # this id belongs to nfpm section and is used to only upload artifacts from nfpm
+    dir: "{{ dir .ArtifactPath }}"
+    cmd: curl -F package=@{{ .ArtifactName }} https://{{ .Env.FURY_TOKEN }}@push.fury.io/netdevops/
+release:
+  prerelease: auto
+changelog:
+  sort: asc
+
+nfpms:
+  - id: cmdo
+    package_name: cmdo
+    maintainer: Roman Dodin <dodin.roman@gmail.com>
+    homepage: https://github.com/hellt/cmdo
+    description: |
+      Run commands against network devices
+    vendor: Nokia
+    license: BSD-3-clause
+    formats:
+      - rpm
+      - deb
+      - apk
+    bindir: /usr/bin
