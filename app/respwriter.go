@@ -24,6 +24,7 @@ func (app *appCfg) newResponseWriter(f string) (responseWriter, error) {
 		case true:
 			parentDir = parentDir + "_" + time.Now().Format(time.RFC3339)
 		}
+		app.outDir = parentDir
 		return &fileWriter{
 			parentDir,
 		}, nil

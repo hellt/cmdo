@@ -36,6 +36,7 @@ type appCfg struct {
 	inventory string // path to inventory file
 	output    string // output mode
 	timestamp bool   // append timestamp to output dir
+	outDir    string // output directory path
 }
 
 func CLI(args []string) int {
@@ -100,6 +101,7 @@ func (app *appCfg) run() error {
 	}
 
 	wg.Wait()
+	log.Infof("outputs have been saved to '%s' dir", app.outDir)
 
 	return nil
 }
