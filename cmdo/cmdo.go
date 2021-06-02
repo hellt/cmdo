@@ -32,6 +32,7 @@ type device struct {
 type appCfg struct {
 	inventory string // path to inventory file
 	output    string // output mode
+	timestamp bool   // append timestamp to output dir
 }
 
 func CLI(args []string) int {
@@ -51,6 +52,7 @@ func (app *appCfg) fromArgs(args []string) error {
 	fl := flag.NewFlagSet("cmdo", flag.ContinueOnError)
 	fl.StringVar(&app.inventory, "i", "inventory.yml", "path to the inventory file")
 	fl.StringVar(&app.output, "o", "file", "print output to: [file, stdout]")
+	fl.BoolVar(&app.timestamp, "t", false, "append timestamp to output directory")
 	if err := fl.Parse(args); err != nil {
 		return err
 	}
@@ -71,7 +73,7 @@ func (app *appCfg) run() error {
 		log.Fatal(err)
 	}
 
-	rw, err := newResponseWriter(app.output)
+	rw, err := app.newResponseWriter(app.output)
 	if err != nil {
 		return err
 	}
@@ -81,10 +83,10 @@ func (app *appCfg) run() error {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(c.Devices))
 	for n, d := range c.Devices {
-		go runCommands(wg, n, d, rCh)
+		go app.runCommands(wg, n, d, rCh)
 
 		resp := <-rCh
-		go outputResult(wg, rw, n, d, resp)
+		go app.outputResult(wg, rw, n, d, resp)
 	}
 
 	wg.Wait()
@@ -92,7 +94,7 @@ func (app *appCfg) run() error {
 	return nil
 }
 
-func runCommands(wg *sync.WaitGroup, name string, d device, rCh chan<- *base.MultiResponse) {
+func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d device, rCh chan<- *base.MultiResponse) {
 	var driver *network.Driver
 	var err error
 
@@ -137,7 +139,7 @@ func runCommands(wg *sync.WaitGroup, name string, d device, rCh chan<- *base.Mul
 
 }
 
-func outputResult(wg *sync.WaitGroup, rw responseWriter, name string, d device, r *base.MultiResponse) {
+func (app *appCfg) outputResult(wg *sync.WaitGroup, rw responseWriter, name string, d device, r *base.MultiResponse) {
 	defer wg.Done()
-	rw.WriteResponse(r, name, d)
+	rw.WriteResponse(r, name, d, app)
 }
