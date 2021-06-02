@@ -82,11 +82,8 @@ func (app *appCfg) run() error {
 	wg.Add(len(c.Devices))
 	for n, d := range c.Devices {
 		go runCommands(wg, n, d, rCh)
-	}
 
-	for n, d := range c.Devices {
 		resp := <-rCh
-		wg.Add(1)
 		go outputResult(wg, rw, n, d, resp)
 	}
 
@@ -96,7 +93,6 @@ func (app *appCfg) run() error {
 }
 
 func runCommands(wg *sync.WaitGroup, name string, d device, rCh chan<- *base.MultiResponse) {
-	defer wg.Done()
 	var driver *network.Driver
 	var err error
 
