@@ -1,68 +1,65 @@
-# cmdo - commando
-cmdo is a tiny program that demonstrates how [scrapligo](https://github.com/scrapli/scrapligo) module can be used to retrieve information from network devices using a simple inventory file.
+<p align=center><a href=""><img src=cmdo.svg?sanitize=true/></a></p>
+
+---
+
+Commando is a tiny tool that enables users to collect command outputs from a range of networking devices defined in an inventory file.
+
+[![asciicast](https://asciinema.org/a/417792.svg)](https://asciinema.org/a/417792)
+
 
 ## Install
-build from source with `go build`
+Using the sudo-less installation script makes it easy to download pre-built binary to the current working directory under `cmdo` name:
 
-## Usage
-1. Create an `inventory.yml` file, an example can be found in the repo.
-2. Run `./cmdo`; the tool will read the `inventory.yml` file and output the results of commands in the terminal
-
-example output:
-
+```bash
+bash -c "$(curl -sL https://raw.githubusercontent.com/hellt/cmdo/master/get.sh)"
 ```
-$ ./cmdo
 
-**************************
-clab-scrapli-sros
-**************************
+## Quickstart
+1. Create an `inventory.yml` file with the devices information. An example [inventory.yml](inventory.yml) file lists three different platforms.
+2. Run `./cmdo -i <path to inventory>`; the tool will read the inventory file and output the results of the commands in the `./
+output` directory.
 
--- show version:
+## Inventory file
+The inventory file schema is simple, the network devices are defined under `.devices` element with each device identified by `<device-name>`:
 
-TiMOS-B-20.10.R3 both/x86_64 Nokia 7750 SR Copyright (c) 2000-2021 Nokia.
-All rights reserved. All use subject to applicable license agreements.
-Built on Wed Jan 27 13:21:10 PST 2021 by builder in /builds/c/2010B/R3/panos/main/sros
-
--- show router interface:
-
-
-===============================================================================
-Interface Table (Router: Base)
-===============================================================================
-Interface-Name                   Adm       Opr(v4/v6)  Mode    Port/SapId
-   IP-Address                                                  PfxState
--------------------------------------------------------------------------------
-system                           Up        Down/Down   Network system
-   -                                                           -
--------------------------------------------------------------------------------
-Interfaces : 1
-===============================================================================
-
-**************************
-clab-scrapli-ceos
-**************************
-
--- show version:
-
- cEOSLab
-Hardware version: 
-Serial number: 
-Hardware MAC address: 001c.7305.c8dd
-System MAC address: 001c.7305.c8dd
-
-Software image version: 4.25.0F-19436514.4250F (engineering build)
-Architecture: x86_64
-Internal build version: 4.25.0F-19436514.4250F
-Internal build ID: 9271a36c-cfb6-4c58-971e-7e30a4eaf173
-
-cEOS tools version: 1.1
-Kernel version: 5.4.60-uksm
-
-Uptime: 0 weeks, 0 days, 1 hours and 24 minutes
-Total memory: 24630136 kB
-Free memory: 19564168 kB
-
--- show uptime:
-
- 10:20:31 up  1:31,  2 users,  load average: 0.83, 0.53, 0.45
+```yaml
+devices:
+  <device1-name>:
+  <device2-name>:
+  <deviceN-name>:
 ```
+
+Each device holds a number of options that define the device platform, auth parameters, and the commands to send:
+
+```yaml
+devices:
+  <device1-name>:
+   # platform is one of arista_eos, cisco_iosxe, cisco_nxos, cisco_iosxr,
+   # juniper_junos, nokia_sros, nokia_sros_classic, nokia_srlinux
+   platform: string 
+      address: string
+      username: string
+      password: string
+      send-commands:
+         - cmd1
+         - cmd2
+         - cmdN
+```
+
+`send-commands` list holds a list of commands which will be send towards a device.
+
+## Configuration options
+
+* `-i <path>` - sets the path to the inventory file
+* `-t` - appends the timestamp to the outputs directory, which results in the output directory to be named like `outputs_2021-06-02T15:08:00+02:00`.
+* `-o file|stdout` - sets the output destination. Defaults to `file` which writes the results of the commands to the per-command files. If set to `stdout`, will print the commands to the terminal.
+
+## Supported platforms
+Commando leverages [scrapligo](https://github.com/scrapli/scrapligo) project to support the major network vendors:
+* Arista EOS
+* Cisco XR/XE/NXOS
+* Juniper JunOS
+* Nokia SR OS (MD-CLI and Classic)
+
+In addition to that list, commando has the ability to add community provided scrapli drivers, such as:
+* Nokia SR Linux - repo: [srlinux-scrapli](https://github.com/srl-labs/srlinux-scrapli)
