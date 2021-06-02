@@ -12,12 +12,12 @@ github.com/mattn/go-isatty v0.0.12 h1:wuysRhFDzyxgEmMf5xjvJ2M9dZoWAXNNr5LSBS7uHX
 github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/scrapli/scrapligo v0.0.0-20210525201948-51f194b2e010 h1:/JsnYRpS0yqA5Pkwc3EIXMsQ4nWQUl167gMhjIFPQY0=
-github.com/scrapli/scrapligo v0.0.0-20210525201948-51f194b2e010/go.mod h1:itZE+qsyMvCMnxccsxMX4ATFqVLDIG/Mw4po4msqwpo=
-github.com/scrapli/scrapligo v0.0.0-20210527153325-f3f552e04327 h1:2z5S2VFATQ5CWhzTjGbBu3Z+g4pW/wU1L088uf2S4U8=
-github.com/scrapli/scrapligo v0.0.0-20210527153325-f3f552e04327/go.mod h1:itZE+qsyMvCMnxccsxMX4ATFqVLDIG/Mw4po4msqwpo=
+github.com/scrapli/scrapligo v0.0.0-20210601185115-acff0f312680 h1:EcBop5L0Nzxh3KVScv3P/y8+iPx+5J791lqcC5nO9YU=
+github.com/scrapli/scrapligo v0.0.0-20210601185115-acff0f312680/go.mod h1:itZE+qsyMvCMnxccsxMX4ATFqVLDIG/Mw4po4msqwpo=
 github.com/sirupsen/logrus v1.8.1 h1:dJKuHgqk1NNQlqoA6BTlM1Wf9DOH3NBjQyu0h9+AZZE=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
+github.com/srl-labs/srlinux-scrapli v0.0.0-20210601201111-9eed8d440381 h1:CMi5adZCXpbLtn1KLCj2sXtOcCFvmUzPzTR6Stf3DVU=
+github.com/srl-labs/srlinux-scrapli v0.0.0-20210601201111-9eed8d440381/go.mod h1:bBK54i+KsRI9eXJEEPdVOV2ts7uF5k6OcSR2zgSsnn4=
 github.com/stretchr/testify v1.2.2 h1:bSDNvY7ZPG5RlJ8otE/7V6gMiyenm9RtJ7IUVIAoJ1w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b h1:7mWr3k41Qtv8XlltBkDkl8LoP3mpSgBW8BUoxtEdbXg=

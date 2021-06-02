@@ -15,3 +15,11 @@ devices:
     send-commands:
       - show version
       - show uptime
+  srlinux:
+    platform: nokia_srlinux
+    address: clab-scrapli-srlinux
+    username: admin
+    password: admin
+    send-commands:
+      - show version
+      - show network-instance interfaces

@@ -8,11 +8,12 @@ import (
 
 	"sync"
 
-	"github.com/fatih/color"
 	"github.com/scrapli/scrapligo/driver/base"
 	"github.com/scrapli/scrapligo/driver/core"
+	"github.com/scrapli/scrapligo/driver/network"
 	"github.com/scrapli/scrapligo/transport"
 	log "github.com/sirupsen/logrus"
+	"github.com/srl-labs/srlinux-scrapli"
 	"gopkg.in/yaml.v2"
 )
 
@@ -28,6 +29,11 @@ type device struct {
 	SendCommands []string `yaml:"send-commands,omitempty"`
 }
 
+type appCfg struct {
+	inventory string // path to inventory file
+	output    string // output mode
+}
+
 func CLI(args []string) int {
 	var app appCfg
 	err := app.fromArgs(args)
@@ -39,11 +45,6 @@ func CLI(args []string) int {
 		return 1
 	}
 	return 0
-}
-
-type appCfg struct {
-	inventory string // path to inventory file
-	output    string // output mode
 }
 
 func (app *appCfg) fromArgs(args []string) error {
@@ -70,6 +71,11 @@ func (app *appCfg) run() error {
 		log.Fatal(err)
 	}
 
+	rw, err := newResponseWriter(app.output)
+	if err != nil {
+		return err
+	}
+
 	rCh := make(chan *base.MultiResponse)
 
 	wg := &sync.WaitGroup{}
@@ -81,7 +87,7 @@ func (app *appCfg) run() error {
 	for n, d := range c.Devices {
 		resp := <-rCh
 		wg.Add(1)
-		go outputResult(wg, n, d, resp)
+		go outputResult(wg, rw, n, d, resp)
 	}
 
 	wg.Wait()
@@ -91,14 +97,28 @@ func (app *appCfg) run() error {
 
 func runCommands(wg *sync.WaitGroup, name string, d device, rCh chan<- *base.MultiResponse) {
 	defer wg.Done()
-	driver, err := core.NewCoreDriver(
-		d.Address,
-		d.Platform,
-		base.WithAuthStrictKey(false),
-		base.WithAuthUsername(d.Username),
-		base.WithAuthPassword(d.Password),
-		base.WithTransportType(transport.StandardTransportName),
-	)
+	var driver *network.Driver
+	var err error
+
+	switch d.Platform {
+	case "nokia_srlinux":
+		driver, err = srlinux.NewSRLinuxDriver(
+			d.Address,
+			base.WithAuthStrictKey(false),
+			base.WithAuthUsername(d.Username),
+			base.WithAuthPassword(d.Password),
+			base.WithTransportType(transport.StandardTransportName),
+		)
+	default:
+		driver, err = core.NewCoreDriver(
+			d.Address,
+			d.Platform,
+			base.WithAuthStrictKey(false),
+			base.WithAuthUsername(d.Username),
+			base.WithAuthPassword(d.Password),
+			base.WithTransportType(transport.StandardTransportName),
+		)
+	}
 
 	if err != nil {
 		log.Errorf("failed to create driver for device %s; error: %+v\n", err, name)
@@ -121,12 +141,7 @@ func runCommands(wg *sync.WaitGroup, name string, d device, rCh chan<- *base.Mul
 
 }
 
-func outputResult(wg *sync.WaitGroup, name string, d device, r *base.MultiResponse) {
+func outputResult(wg *sync.WaitGroup, rw responseWriter, name string, d device, r *base.MultiResponse) {
 	defer wg.Done()
-	color.Green("\n**************************\n%s\n**************************\n", name)
-	for idx, cmd := range d.SendCommands {
-		c := color.New(color.Bold)
-		c.Printf("\n-- %s:\n", cmd)
-		fmt.Println(r.Responses[idx].Result)
-	}
+	rw.WriteResponse(r, name, d)
 }
