@@ -10,14 +10,6 @@ builds:
       - amd64
       - arm
       - arm64
-archives:
-  - replacements:
-      darwin: Darwin
-      linux: Linux
-      amd64: x86_64
-      386: i386
-      arm: armv7
-      arm64: aarch64
 checksum:
   name_template: checksums.txt
 snapshot:
