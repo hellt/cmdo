@@ -7,6 +7,7 @@
 : ${USE_PKG:="false"} # default --use-pkg flag value. will use tar.gz bin installation by default unless the default is changed to true
 : ${VERIFY_CHECKSUM:="false"}
 : ${BIN_INSTALL_DIR:=$(pwd)}
+: ${PKG_INSTALL_DIR:="/usr/bin/"}
 : ${REPO_NAME:="hellt/cmdo"}
 : ${REPO_URL:="https://github.com/$REPO_NAME"}
 : ${PROJECT_URL:="https://github.com/$REPO_NAME"}
@@ -215,6 +216,9 @@ fail_trap() {
 # testVersion tests the installed client to make sure it is working.
 testVersion() {
     set +e
+    if [ $USE_PKG == "true" ]; then
+        BIN_INSTALL_DIR=$PKG_INSTALL_DIR
+    fi
     $BIN_INSTALL_DIR/$BINARY_NAME -v
     if [ "$?" = "1" ]; then
         echo "$BINARY_NAME not found. Is $BIN_INSTALL_DIR in your "'$PATH?'
