@@ -2,6 +2,7 @@ package commando
 
 import (
 	"io/ioutil"
+	"os"
 
 	"sync"
 
@@ -57,6 +58,11 @@ func (app *appCfg) run() error {
 
 	rCh := make(chan *base.MultiResponse)
 
+	if app.output == "file" {
+		log.SetOutput(os.Stderr)
+		log.Infof("Started sending commands and capturing outputs...")
+	}
+
 	wg := &sync.WaitGroup{}
 	wg.Add(len(c.Devices))
 	for n, d := range c.Devices {
@@ -67,7 +73,10 @@ func (app *appCfg) run() error {
 	}
 
 	wg.Wait()
-	log.Infof("outputs have been saved to '%s' dir", app.outDir)
+
+	if app.output == "file" {
+		log.Infof("outputs have been saved to '%s' directory", app.outDir)
+	}
 
 	return nil
 }
