@@ -17,7 +17,11 @@ bash -c "$(curl -sL https://raw.githubusercontent.com/hellt/cmdo/master/get.sh)"
 
 Windows users are encouraged to use WSL, but if it is not possible, the `.exe` file can be found in [Releases](https://github.com/hellt/cmdo/releases) section.
 
-Linux users can leverage pre-built deb/rpm packages that are also available in the Releases section.
+Linux users can leverage pre-built deb/rpm packages that are also available in the Releases section. Either download the package manually, or set `--use-pkg` flag with the install script:
+
+```
+bash -c "$(curl -sL https://raw.githubusercontent.com/hellt/cmdo/master/get.sh)" -- --use-pkg
+```
 
 ## Quickstart
 1. Create an `inventory.yml` file with the devices information. An example [inventory.yml](inventory.yml) file lists three different platforms.
