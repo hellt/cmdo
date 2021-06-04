@@ -7,5 +7,6 @@ require (
 	github.com/scrapli/scrapligo v0.0.0-20210602192414-6dd77b8af3c2
 	github.com/sirupsen/logrus v1.8.1
 	github.com/srl-labs/srlinux-scrapli v0.0.0-20210601201111-9eed8d440381
+	github.com/urfave/cli/v2 v2.3.0
 	gopkg.in/yaml.v2 v2.4.0
 )

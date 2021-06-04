@@ -1,4 +1,4 @@
-package cmdo
+package commando
 
 import (
 	"fmt"

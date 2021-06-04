@@ -2,7 +2,7 @@ builds:
   - env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w -X github.com/hellt/cmdo/app.version={{.Version}} -X github.com/hellt/cmdo/app.commit={{.ShortCommit}}
+      - -s -w -X github.com/hellt/cmdo/commando.version={{.Version}} -X github.com/hellt/cmdo/commando.commit={{.ShortCommit}}
     goos:
       - linux
       - darwin

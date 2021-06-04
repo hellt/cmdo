@@ -3,9 +3,14 @@ package main
 import (
 	"os"
 
-	cmdo "github.com/hellt/cmdo/app"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/hellt/cmdo/commando"
 )
 
 func main() {
-	os.Exit(cmdo.CLI(os.Args[1:]))
+	err := commando.NewCLI().Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
