@@ -1,4 +1,4 @@
-<p align=center><a href=""><img src=cmdo.svg?sanitize=true/></a></p>
+<p align=center><img src=cmdo.svg?sanitize=true/></p>
 
 ---
 
