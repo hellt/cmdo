@@ -1,5 +1,7 @@
 <p align=center><img src=cmdo.svg?sanitize=true/></p>
 
+[![Go Report](https://img.shields.io/badge/go%20report-A%2B-blue?style=flat-square&color=00c9ff&labelColor=bec8d2)](https://goreportcard.com/report/github.com/hellt/cmdo)
+[![Github all releases](https://img.shields.io/github/downloads/hellt/cmdo/total.svg?style=flat-square&color=00c9ff&labelColor=bec8d2)](https://github.com/hellt/cmdo/releases/)
 ---
 
 Commando is a tiny tool that enables users to collect command outputs from a range of networking devices defined in an inventory file.
@@ -59,16 +61,21 @@ devices:
 
 ## Configuration options
 
-* `-i <path>` - sets the path to the inventory file
-* `-t` - appends the timestamp to the outputs directory, which results in the output directory to be named like `outputs_2021-06-02T15:08:00+02:00`.
-* `-o file|stdout` - sets the output destination. Defaults to `file` which writes the results of the commands to the per-command files. If set to `stdout`, will print the commands to the terminal.
+* `--inventory | -i <path>` - sets the path to the inventory file
+* `--add-timestamp | -t` - appends the timestamp to the outputs directory, which results in the output directory to be named like `outputs_2021-06-02T15:08:00+02:00`.
+* `--output | -o value` - sets the output destination. Defaults to `file` which writes the results of the commands to the per-command files. If set to `stdout`, will print the commands to the terminal.
+* `--filter | -f 'pattern'` - a filter to apply to device name to select the devices to which the commands will be sent. Can be a Go regular expression.
 
 ## Supported platforms
-Commando leverages [scrapligo](https://github.com/scrapli/scrapligo) project to support the major network vendors:
-* Arista EOS
-* Cisco XR/XE/NXOS
-* Juniper JunOS
-* Nokia SR OS (MD-CLI and Classic)
+Commando leverages [scrapligo](https://github.com/scrapli/scrapligo) project to support the major network platforms:
+| Network OS                       | Platform name                              |
+| -------------------------------- | ------------------------------------------ |
+| Arista EOS                       | `arista_eos`                               |
+| Cisco XR/XE/NXOS                 | `cisco_iosxr`, `cisco_iosxe`, `cisco_nxos` |
+| Juniper JunOS                    | `juniper_junos`                            |
+| Nokia SR OS (MD-CLI and Classic) | `nokia_sros`, `nokia_sros_classic`         |
 
 In addition to that list, commando has the ability to add community provided scrapli drivers, such as:
-* Nokia SR Linux - repo: [srlinux-scrapli](https://github.com/srl-labs/srlinux-scrapli)
+| Network OS     | Platform name                                                  |
+| -------------- | -------------------------------------------------------------- |
+| Nokia SR Linux | [`nokia_srlinux`](https://github.com/srl-labs/srlinux-scrapli) |

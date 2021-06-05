@@ -1,8 +1,10 @@
 package commando
 
 import (
+	"errors"
 	"io/ioutil"
 	"os"
+	"regexp"
 
 	"sync"
 
@@ -35,20 +37,26 @@ type appCfg struct {
 	output    string // output mode
 	timestamp bool   // append timestamp to output dir
 	outDir    string // output directory path
+	devFilter string // pattern
 }
 
 // run runs the commando
 func (app *appCfg) run() error {
 	// logging.SetDebugLogger(log.Print)
-	c := &inventory{}
+	i := &inventory{}
 	yamlFile, err := ioutil.ReadFile(app.inventory)
 	if err != nil {
 		return err
 	}
 
-	err = yaml.UnmarshalStrict(yamlFile, c)
+	err = yaml.UnmarshalStrict(yamlFile, i)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	filterDevices(i, app.devFilter)
+	if len(i.Devices) == 0 {
+		return errors.New("no devices to send commands to")
 	}
 
 	rw, err := app.newResponseWriter(app.output)
@@ -64,8 +72,8 @@ func (app *appCfg) run() error {
 	}
 
 	wg := &sync.WaitGroup{}
-	wg.Add(len(c.Devices))
-	for n, d := range c.Devices {
+	wg.Add(len(i.Devices))
+	for n, d := range i.Devices {
 		go app.runCommands(wg, n, d, rCh)
 
 		resp := <-rCh
@@ -129,4 +137,19 @@ func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d device, rCh ch
 func (app *appCfg) outputResult(wg *sync.WaitGroup, rw responseWriter, name string, d device, r *base.MultiResponse) {
 	defer wg.Done()
 	rw.WriteResponse(r, name, d, app)
+}
+
+// filterDevices will remove the devices which names do not match the passed filter
+func filterDevices(i *inventory, f string) {
+	if len(f) == 0 {
+		return
+	}
+
+	fRe := regexp.MustCompile(f)
+
+	for n := range i.Devices {
+		if !fRe.Match([]byte(n)) {
+			delete(i.Devices, n)
+		}
+	}
 }

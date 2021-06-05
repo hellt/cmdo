@@ -30,6 +30,13 @@ func NewCLI() *cli.App {
 			Usage:       "append timestamp to output directory",
 			Destination: &appC.timestamp,
 		},
+		&cli.StringFlag{
+			Name:        "filter",
+			Aliases:     []string{"f"},
+			Value:       "",
+			Usage:       "filter to select the devices to send commands to",
+			Destination: &appC.devFilter,
+		},
 	}
 
 	cli.VersionPrinter = showVersion
