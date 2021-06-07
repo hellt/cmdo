@@ -13,7 +13,7 @@ import (
 )
 
 type responseWriter interface {
-	WriteResponse(r *base.MultiResponse, name string, d device, appCfg *appCfg) error
+	WriteResponse(r *base.MultiResponse, name string, d *device, appCfg *appCfg) error
 }
 
 func (app *appCfg) newResponseWriter(f string) (responseWriter, error) {
@@ -38,7 +38,7 @@ func (app *appCfg) newResponseWriter(f string) (responseWriter, error) {
 // consoleWriter writes the scrapli responses to the console
 type consoleWriter struct{}
 
-func (w *consoleWriter) WriteResponse(r *base.MultiResponse, name string, d device, appCfg *appCfg) error {
+func (w *consoleWriter) WriteResponse(r *base.MultiResponse, name string, d *device, appCfg *appCfg) error {
 	color.Green("\n**************************\n%s\n**************************\n", name)
 	for idx, cmd := range d.SendCommands {
 		c := color.New(color.Bold)
@@ -56,7 +56,7 @@ type fileWriter struct {
 	dir string // output dir name
 }
 
-func (w *fileWriter) WriteResponse(r *base.MultiResponse, name string, d device, appCfg *appCfg) error {
+func (w *fileWriter) WriteResponse(r *base.MultiResponse, name string, d *device, appCfg *appCfg) error {
 
 	outDir := path.Join(w.dir, name)
 	if err := os.MkdirAll(outDir, 0755); err != nil {

@@ -38,7 +38,7 @@ const (
 )
 
 type inventory struct {
-	Devices map[string]device `yaml:"devices,omitempty"`
+	Devices map[string]*device `yaml:"devices,omitempty"`
 }
 
 type device struct {
@@ -107,7 +107,7 @@ func (app *appCfg) run() error {
 	return nil
 }
 
-func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d device, rCh chan<- *base.MultiResponse) {
+func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d *device, rCh chan<- *base.MultiResponse) {
 	var driver *network.Driver
 	var err error
 
@@ -152,7 +152,7 @@ func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d device, rCh ch
 
 }
 
-func (app *appCfg) outputResult(wg *sync.WaitGroup, rw responseWriter, name string, d device, r *base.MultiResponse) {
+func (app *appCfg) outputResult(wg *sync.WaitGroup, rw responseWriter, name string, d *device, r *base.MultiResponse) {
 	defer wg.Done()
 	rw.WriteResponse(r, name, d, app)
 }
@@ -208,9 +208,9 @@ func (app *appCfg) loadInventoryFromFlags(i *inventory) error {
 
 	cmds := strings.Split(app.commands, "::")
 
-	i.Devices = map[string]device{}
+	i.Devices = map[string]*device{}
 
-	i.Devices[app.address] = device{
+	i.Devices[app.address] = &device{
 		Platform:     app.platform,
 		Address:      app.address,
 		Username:     app.username,
