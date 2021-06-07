@@ -62,7 +62,7 @@ func (app *appCfg) run() error {
 	// logging.SetDebugLogger(log.Print)
 	i := &inventory{}
 	// start bulk commands routine
-	if len(app.address) == 0 {
+	if app.address == "" {
 		if err := app.loadInventoryFromYAML(i); err != nil {
 			return err
 		}
@@ -154,7 +154,7 @@ func (app *appCfg) outputResult(wg *sync.WaitGroup, rw responseWriter, name stri
 
 // filterDevices will remove the devices which names do not match the passed filter
 func filterDevices(i *inventory, f string) {
-	if len(f) == 0 {
+	if f == "" {
 		return
 	}
 
@@ -188,16 +188,16 @@ func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
 
 func (app *appCfg) loadInventoryFromFlags(i *inventory) error {
 
-	if len(app.platform) == 0 {
+	if app.platform == "" {
 		return fmt.Errorf("platform is not set, use --platform | -k <platform> to set one of the supported platforms: %q", supportedPlatforms)
 	}
-	if len(app.username) == 0 {
+	if app.username == "" {
 		return errors.New("username was not provided. Use --username | -u to set it")
 	}
-	if len(app.password) == 0 {
+	if app.password == "" {
 		return errors.New("password was not provided. Use --passoword | -p to set it")
 	}
-	if len(app.commands) == 0 {
+	if app.commands == "" {
 		return errors.New("commands were not provided. Use --commands | -c to set a `::` delimited list of commands to run")
 	}
 
