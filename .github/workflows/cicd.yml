@@ -51,6 +51,7 @@ jobs:
     needs:
       - unit-test
       - staticcheck
+      - lint
     steps:
       - name: Checkout
         uses: actions/checkout@v2
