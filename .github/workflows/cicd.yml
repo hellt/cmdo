@@ -22,18 +22,6 @@ jobs:
           go-version: ${{ env.GOVER }}
       - run: go test -cover ./...
 
-  staticcheck:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GOVER }}
-      - name: Staticcheck
-        run: |
-          go get -u honnef.co/go/tools/cmd/staticcheck
-          staticcheck ./...
-
   lint:
     runs-on: ubuntu-20.04
     steps:
@@ -48,7 +36,6 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     needs:
       - unit-test
-      - staticcheck
       - lint
     steps:
       - name: Checkout
