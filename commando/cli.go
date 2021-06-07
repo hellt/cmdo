@@ -6,6 +6,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// NewCLI defines the CLI flags and commands
 func NewCLI() *cli.App {
 	appC := &appCfg{}
 	flags := []cli.Flag{
@@ -36,6 +37,40 @@ func NewCLI() *cli.App {
 			Value:       "",
 			Usage:       "filter to select the devices to send commands to",
 			Destination: &appC.devFilter,
+		},
+		&cli.StringFlag{
+			Name:        "platform",
+			Aliases:     []string{"k"},
+			Value:       "",
+			Usage:       "platform name [only for single-node mode]",
+			Destination: &appC.platform,
+		},
+		&cli.StringFlag{
+			Name:        "address",
+			Aliases:     []string{"a"},
+			Value:       "",
+			Usage:       "device's address [only for single-node mode]",
+			Destination: &appC.address,
+		},
+		&cli.StringFlag{
+			Name:        "username",
+			Aliases:     []string{"u"},
+			Value:       "",
+			Usage:       "username to use for SSH connection",
+			Destination: &appC.username,
+		},
+		&cli.StringFlag{
+			Name:        "password",
+			Aliases:     []string{"p"},
+			Value:       "",
+			Usage:       "username to use for SSH connection",
+			Destination: &appC.password,
+		},
+		&cli.StringFlag{
+			Name:        "commands",
+			Aliases:     []string{"c"},
+			Usage:       "commands to send. separated with ::",
+			Destination: &appC.commands,
 		},
 	}
 

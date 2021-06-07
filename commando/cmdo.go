@@ -2,9 +2,11 @@ package commando
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"regexp"
+	"strings"
 
 	"sync"
 
@@ -19,6 +21,16 @@ import (
 
 var version string
 var commit string
+var supportedPlatforms = []string{
+	"arista_eos",
+	`cisco_iosxr`,
+	`cisco_iosxe`,
+	`cisco_nxos`,
+	`juniper_junos`,
+	`nokia_sros`,
+	`nokia_sros_classic`,
+	`nokia_srlinux`,
+}
 
 type inventory struct {
 	Devices map[string]device `yaml:"devices,omitempty"`
@@ -38,25 +50,26 @@ type appCfg struct {
 	timestamp bool   // append timestamp to output dir
 	outDir    string // output directory path
 	devFilter string // pattern
+	platform  string // platform name
+	address   string // device address
+	username  string // ssh username
+	password  string // ssh password
+	commands  string // commands to send
 }
 
 // run runs the commando
 func (app *appCfg) run() error {
 	// logging.SetDebugLogger(log.Print)
 	i := &inventory{}
-	yamlFile, err := ioutil.ReadFile(app.inventory)
-	if err != nil {
-		return err
-	}
-
-	err = yaml.UnmarshalStrict(yamlFile, i)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	filterDevices(i, app.devFilter)
-	if len(i.Devices) == 0 {
-		return errors.New("no devices to send commands to")
+	// start bulk commands routine
+	if len(app.address) == 0 {
+		if err := app.loadInventoryFromYAML(i); err != nil {
+			return err
+		}
+	} else { // else we run commands against a single device
+		if err := app.loadInventoryFromFlags(i); err != nil {
+			return err
+		}
 	}
 
 	rw, err := app.newResponseWriter(app.output)
@@ -152,4 +165,53 @@ func filterDevices(i *inventory, f string) {
 			delete(i.Devices, n)
 		}
 	}
+}
+
+func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
+	yamlFile, err := ioutil.ReadFile(app.inventory)
+	if err != nil {
+		return err
+	}
+
+	err = yaml.UnmarshalStrict(yamlFile, i)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	filterDevices(i, app.devFilter)
+	if len(i.Devices) == 0 {
+		return errors.New("no devices to send commands to")
+	}
+
+	return nil
+}
+
+func (app *appCfg) loadInventoryFromFlags(i *inventory) error {
+
+	if len(app.platform) == 0 {
+		return fmt.Errorf("platform is not set, use --platform | -k <platform> to set one of the supported platforms: %q", supportedPlatforms)
+	}
+	if len(app.username) == 0 {
+		return errors.New("username was not provided. Use --username | -u to set it")
+	}
+	if len(app.password) == 0 {
+		return errors.New("password was not provided. Use --passoword | -p to set it")
+	}
+	if len(app.commands) == 0 {
+		return errors.New("commands were not provided. Use --commands | -c to set a `::` delimited list of commands to run")
+	}
+
+	cmds := strings.Split(app.commands, "::")
+
+	i.Devices = map[string]device{}
+
+	i.Devices[app.address] = device{
+		Platform:     app.platform,
+		Address:      app.address,
+		Username:     app.username,
+		Password:     app.password,
+		SendCommands: cmds,
+	}
+
+	return nil
 }

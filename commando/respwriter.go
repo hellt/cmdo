@@ -43,6 +43,9 @@ func (w *consoleWriter) WriteResponse(r *base.MultiResponse, name string, d devi
 	for idx, cmd := range d.SendCommands {
 		c := color.New(color.Bold)
 		c.Printf("\n-- %s:\n", cmd)
+		if r.Responses[idx].Failed {
+			color.Set(color.FgRed)
+		}
 		fmt.Println(r.Responses[idx].Result)
 	}
 	return nil
