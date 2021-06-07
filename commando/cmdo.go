@@ -62,9 +62,8 @@ type appCfg struct {
 	commands  string // commands to send
 }
 
-// run runs the commando
+// run runs the commando.
 func (app *appCfg) run() error {
-	// logging.SetDebugLogger(log.Print)
 	i := &inventory{}
 	// start bulk commands routine
 	if app.address == "" {
@@ -107,7 +106,12 @@ func (app *appCfg) run() error {
 	return nil
 }
 
-func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d *device, rCh chan<- *base.MultiResponse) {
+func (app *appCfg) runCommands(
+	wg *sync.WaitGroup,
+	name string,
+	d *device,
+	rCh chan<- *base.MultiResponse) {
+
 	var driver *network.Driver
 	var err error
 
@@ -152,14 +156,20 @@ func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d *device, rCh c
 
 }
 
-func (app *appCfg) outputResult(wg *sync.WaitGroup, rw responseWriter, name string, d *device, r *base.MultiResponse) {
+func (app *appCfg) outputResult(
+	wg *sync.WaitGroup,
+	rw responseWriter,
+	name string,
+	d *device,
+	r *base.MultiResponse) {
+
 	defer wg.Done()
 	if err := rw.WriteResponse(r, name, d, app); err != nil {
 		log.Errorf("error while writing the response: %w", err)
 	}
 }
 
-// filterDevices will remove the devices which names do not match the passed filter
+// filterDevices will remove the devices which names do not match the passed filter.
 func filterDevices(i *inventory, f string) {
 	if f == "" {
 		return
@@ -196,7 +206,8 @@ func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
 func (app *appCfg) loadInventoryFromFlags(i *inventory) error {
 
 	if app.platform == "" {
-		return fmt.Errorf("platform is not set, use --platform | -k <platform> to set one of the supported platforms: %q", supportedPlatforms)
+		return fmt.Errorf("platform is not set, use --platform | -k <platform> to set one of the supported platforms: %q",
+			supportedPlatforms)
 	}
 	if app.username == "" {
 		return errors.New("username was not provided. Use --username | -u to set it")

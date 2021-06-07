@@ -6,7 +6,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// NewCLI defines the CLI flags and commands
+// NewCLI defines the CLI flags and commands.
 func NewCLI() *cli.App {
 	appC := &appCfg{}
 	flags := []cli.Flag{
