@@ -40,11 +40,12 @@ func (app *appCfg) newResponseWriter(f string) responseWriter {
 type consoleWriter struct{}
 
 func (w *consoleWriter) WriteResponse(r *base.MultiResponse, name string, d *device, appCfg *appCfg) error {
-	color.Green("\n**************************\n%s\n**************************\n", name)
+	c := color.New(color.FgGreen)
+	c.Fprintf(os.Stderr, "\n**************************\n%s\n**************************\n", name)
 
 	for idx, cmd := range d.SendCommands {
 		c := color.New(color.Bold)
-		c.Printf("\n-- %s:\n", cmd)
+		c.Fprintf(os.Stderr, "\n-- %s:\n", cmd)
 
 		if r.Responses[idx].Failed {
 			color.Set(color.FgRed)
