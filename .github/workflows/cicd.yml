@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: ${{ env.GOVER }}
-      - run: go test -race -cover ./...
+      - run: go test -cover ./...
 
   staticcheck:
     runs-on: ubuntu-20.04
