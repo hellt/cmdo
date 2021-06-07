@@ -19,21 +19,35 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var version string
-var commit string
-var supportedPlatforms = []string{
-	"arista_eos",
-	`cisco_iosxr`,
-	`cisco_iosxe`,
-	`cisco_nxos`,
-	`juniper_junos`,
-	`nokia_sros`,
-	`nokia_sros_classic`,
-	`nokia_srlinux`,
-}
+var (
+	version            string
+	commit             string      //nolint:gochecknoglobals
+	supportedPlatforms = []string{ //nolint:gochecknoglobals
+		"arista_eos",
+		`cisco_iosxr`,
+		`cisco_iosxe`,
+		`cisco_nxos`,
+		`juniper_junos`,
+		`nokia_sros`,
+		`nokia_sros_classic`,
+		`nokia_srlinux`,
+	}
+
+	errNoDevices         = errors.New("no devices to send commands to")
+	errNoPlatformDefined = fmt.Errorf("platform is not set, use --platform | -k <platform> to set one of the supported platforms: %q",
+		supportedPlatforms)
+	errNoUsernameDefined = errors.New("username was not provided. Use --username | -u to set it")
+	errNoPasswordDefined = errors.New("password was not provided. Use --passoword | -p to set it")
+	errNoCommandsDefined = errors.New("commands were not provided. Use --commands | -c to set a `::` delimited list of commands to run")
+)
+
+const (
+	fileOutput   = "file"
+	stdoutOutput = "stdout"
+)
 
 type inventory struct {
-	Devices map[string]device `yaml:"devices,omitempty"`
+	Devices map[string]*device `yaml:"devices,omitempty"`
 }
 
 type device struct {
@@ -57,12 +71,11 @@ type appCfg struct {
 	commands  string // commands to send
 }
 
-// run runs the commando
+// run runs the commando.
 func (app *appCfg) run() error {
-	// logging.SetDebugLogger(log.Print)
 	i := &inventory{}
 	// start bulk commands routine
-	if len(app.address) == 0 {
+	if app.address == "" {
 		if err := app.loadInventoryFromYAML(i); err != nil {
 			return err
 		}
@@ -72,22 +85,19 @@ func (app *appCfg) run() error {
 		}
 	}
 
-	rw, err := app.newResponseWriter(app.output)
-	if err != nil {
-		return err
-	}
-
+	rw := app.newResponseWriter(app.output)
 	rCh := make(chan *base.MultiResponse)
 
-	if app.output == "file" {
+	if app.output == fileOutput {
 		log.SetOutput(os.Stderr)
 		log.Infof("Started sending commands and capturing outputs...")
 	}
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(i.Devices))
+
 	for n, d := range i.Devices {
-		go app.runCommands(wg, n, d, rCh)
+		go app.runCommands(n, d, rCh)
 
 		resp := <-rCh
 		go app.outputResult(wg, rw, n, d, resp)
@@ -95,15 +105,19 @@ func (app *appCfg) run() error {
 
 	wg.Wait()
 
-	if app.output == "file" {
+	if app.output == fileOutput {
 		log.Infof("outputs have been saved to '%s' directory", app.outDir)
 	}
 
 	return nil
 }
 
-func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d device, rCh chan<- *base.MultiResponse) {
+func (app *appCfg) runCommands(
+	name string,
+	d *device,
+	rCh chan<- *base.MultiResponse) {
 	var driver *network.Driver
+
 	var err error
 
 	switch d.Platform {
@@ -144,17 +158,24 @@ func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d device, rCh ch
 	}
 
 	rCh <- r
-
 }
 
-func (app *appCfg) outputResult(wg *sync.WaitGroup, rw responseWriter, name string, d device, r *base.MultiResponse) {
+func (app *appCfg) outputResult(
+	wg *sync.WaitGroup,
+	rw responseWriter,
+	name string,
+	d *device,
+	r *base.MultiResponse) {
 	defer wg.Done()
-	rw.WriteResponse(r, name, d, app)
+
+	if err := rw.WriteResponse(r, name, d, app); err != nil {
+		log.Errorf("error while writing the response: %v", err)
+	}
 }
 
-// filterDevices will remove the devices which names do not match the passed filter
+// filterDevices will remove the devices which names do not match the passed filter.
 func filterDevices(i *inventory, f string) {
-	if len(f) == 0 {
+	if f == "" {
 		return
 	}
 
@@ -179,33 +200,36 @@ func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
 	}
 
 	filterDevices(i, app.devFilter)
+
 	if len(i.Devices) == 0 {
-		return errors.New("no devices to send commands to")
+		return errNoDevices
 	}
 
 	return nil
 }
 
 func (app *appCfg) loadInventoryFromFlags(i *inventory) error {
+	if app.platform == "" {
+		return errNoPlatformDefined
+	}
 
-	if len(app.platform) == 0 {
-		return fmt.Errorf("platform is not set, use --platform | -k <platform> to set one of the supported platforms: %q", supportedPlatforms)
+	if app.username == "" {
+		return errNoUsernameDefined
 	}
-	if len(app.username) == 0 {
-		return errors.New("username was not provided. Use --username | -u to set it")
+
+	if app.password == "" {
+		return errNoPasswordDefined
 	}
-	if len(app.password) == 0 {
-		return errors.New("password was not provided. Use --passoword | -p to set it")
-	}
-	if len(app.commands) == 0 {
-		return errors.New("commands were not provided. Use --commands | -c to set a `::` delimited list of commands to run")
+
+	if app.commands == "" {
+		return errNoCommandsDefined
 	}
 
 	cmds := strings.Split(app.commands, "::")
 
-	i.Devices = map[string]device{}
+	i.Devices = map[string]*device{}
 
-	i.Devices[app.address] = device{
+	i.Devices[app.address] = &device{
 		Platform:     app.platform,
 		Address:      app.address,
 		Username:     app.username,

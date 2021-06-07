@@ -32,7 +32,7 @@ linters-settings:
     settings:
       mnd:
         # don't include the "operation" and "assign"
-        checks: argument,case,condition,return
+        checks: [argument, case, condition, return]
   govet:
     check-shadowing: true
     settings:
@@ -43,7 +43,7 @@ linters-settings:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
   lll:
-    line-length: 100
+    line-length: 150
   misspell:
     locale: US
   nolintlint:
@@ -110,29 +110,6 @@ issues:
     - path: _test\.go
       linters:
         - gomnd
-    # ignoring launching subprocess with user provided args
-    - path: transport/system
-      text: "G204"
-      linters:
-        - gosec
-    # ignoring slightly too nested channel authentication
-    - path: channel/authenticate
-      text: "deeply nested"
-      linters:
-        - nestif
-    # ignoring complaint about global logger
-    - path: logging/logging
-      text: "global variable"
-      linters:
-        - gochecknoglobals
-    # ignoring complaint about junos/xr core drivers having dupl lines
-    - path: driver/core
-      text: "9-59 lines are duplicate"
-      linters:
-        - dupl
-#    - text: "TODO/BUG/FIXME"
-#      linters:
-#        - godox
 
 run:
   skip-dirs:

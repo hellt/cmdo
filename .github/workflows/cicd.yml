@@ -22,18 +22,6 @@ jobs:
           go-version: ${{ env.GOVER }}
       - run: go test -cover ./...
 
-  staticcheck:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
-        with:
-          go-version: ${{ env.GOVER }}
-      - name: Staticcheck
-        run: |
-          go get -u honnef.co/go/tools/cmd/staticcheck
-          staticcheck ./...
-
   lint:
     runs-on: ubuntu-20.04
     steps:
@@ -42,15 +30,13 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.40.1
-      - name: golangci-lint
-        run: golangci-lint run
 
   build-and-release:
     runs-on: ubuntu-20.04
     if: startsWith(github.ref, 'refs/tags/v')
     needs:
       - unit-test
-      - staticcheck
+      - lint
     steps:
       - name: Checkout
         uses: actions/checkout@v2
