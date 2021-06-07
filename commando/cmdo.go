@@ -19,18 +19,27 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var version string
-var commit string
-var supportedPlatforms = []string{
-	"arista_eos",
-	`cisco_iosxr`,
-	`cisco_iosxe`,
-	`cisco_nxos`,
-	`juniper_junos`,
-	`nokia_sros`,
-	`nokia_sros_classic`,
-	`nokia_srlinux`,
-}
+var (
+	version            string
+	commit             string      //nolint:gochecknoglobals
+	supportedPlatforms = []string{ //nolint:gochecknoglobals
+		"arista_eos",
+		`cisco_iosxr`,
+		`cisco_iosxe`,
+		`cisco_nxos`,
+		`juniper_junos`,
+		`nokia_sros`,
+		`nokia_sros_classic`,
+		`nokia_srlinux`,
+	}
+
+	errNoDevices         = errors.New("no devices to send commands to")
+	errNoPlatformDefined = fmt.Errorf("platform is not set, use --platform | -k <platform> to set one of the supported platforms: %q",
+		supportedPlatforms)
+	errNoUsernameDefined = errors.New("username was not provided. Use --username | -u to set it")
+	errNoPasswordDefined = errors.New("password was not provided. Use --passoword | -p to set it")
+	errNoCommandsDefined = errors.New("commands were not provided. Use --commands | -c to set a `::` delimited list of commands to run")
+)
 
 const (
 	fileOutput   = "file"
@@ -76,11 +85,7 @@ func (app *appCfg) run() error {
 		}
 	}
 
-	rw, err := app.newResponseWriter(app.output)
-	if err != nil {
-		return err
-	}
-
+	rw := app.newResponseWriter(app.output)
 	rCh := make(chan *base.MultiResponse)
 
 	if app.output == fileOutput {
@@ -90,6 +95,7 @@ func (app *appCfg) run() error {
 
 	wg := &sync.WaitGroup{}
 	wg.Add(len(i.Devices))
+
 	for n, d := range i.Devices {
 		go app.runCommands(n, d, rCh)
 
@@ -111,6 +117,7 @@ func (app *appCfg) runCommands(
 	d *device,
 	rCh chan<- *base.MultiResponse) {
 	var driver *network.Driver
+
 	var err error
 
 	switch d.Platform {
@@ -151,7 +158,6 @@ func (app *appCfg) runCommands(
 	}
 
 	rCh <- r
-
 }
 
 func (app *appCfg) outputResult(
@@ -160,10 +166,10 @@ func (app *appCfg) outputResult(
 	name string,
 	d *device,
 	r *base.MultiResponse) {
-
 	defer wg.Done()
+
 	if err := rw.WriteResponse(r, name, d, app); err != nil {
-		log.Errorf("error while writing the response: %w", err)
+		log.Errorf("error while writing the response: %v", err)
 	}
 }
 
@@ -194,27 +200,29 @@ func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
 	}
 
 	filterDevices(i, app.devFilter)
+
 	if len(i.Devices) == 0 {
-		return errors.New("no devices to send commands to")
+		return errNoDevices
 	}
 
 	return nil
 }
 
 func (app *appCfg) loadInventoryFromFlags(i *inventory) error {
-
 	if app.platform == "" {
-		return fmt.Errorf("platform is not set, use --platform | -k <platform> to set one of the supported platforms: %q",
-			supportedPlatforms)
+		return errNoPlatformDefined
 	}
+
 	if app.username == "" {
-		return errors.New("username was not provided. Use --username | -u to set it")
+		return errNoUsernameDefined
 	}
+
 	if app.password == "" {
-		return errors.New("password was not provided. Use --passoword | -p to set it")
+		return errNoPasswordDefined
 	}
+
 	if app.commands == "" {
-		return errors.New("commands were not provided. Use --commands | -c to set a `::` delimited list of commands to run")
+		return errNoCommandsDefined
 	}
 
 	cmds := strings.Split(app.commands, "::")
