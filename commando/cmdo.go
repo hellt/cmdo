@@ -154,7 +154,9 @@ func (app *appCfg) runCommands(wg *sync.WaitGroup, name string, d *device, rCh c
 
 func (app *appCfg) outputResult(wg *sync.WaitGroup, rw responseWriter, name string, d *device, r *base.MultiResponse) {
 	defer wg.Done()
-	rw.WriteResponse(r, name, d, app)
+	if err := rw.WriteResponse(r, name, d, app); err != nil {
+		log.Errorf("error while writing the response: %w", err)
+	}
 }
 
 // filterDevices will remove the devices which names do not match the passed filter
