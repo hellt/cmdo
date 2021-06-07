@@ -32,6 +32,11 @@ var supportedPlatforms = []string{
 	`nokia_srlinux`,
 }
 
+const (
+	fileOutput   = "file"
+	stdoutOutput = "stdout"
+)
+
 type inventory struct {
 	Devices map[string]device `yaml:"devices,omitempty"`
 }
@@ -79,7 +84,7 @@ func (app *appCfg) run() error {
 
 	rCh := make(chan *base.MultiResponse)
 
-	if app.output == "file" {
+	if app.output == fileOutput {
 		log.SetOutput(os.Stderr)
 		log.Infof("Started sending commands and capturing outputs...")
 	}
@@ -95,7 +100,7 @@ func (app *appCfg) run() error {
 
 	wg.Wait()
 
-	if app.output == "file" {
+	if app.output == fileOutput {
 		log.Infof("outputs have been saved to '%s' directory", app.outDir)
 	}
 

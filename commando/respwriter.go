@@ -18,7 +18,7 @@ type responseWriter interface {
 
 func (app *appCfg) newResponseWriter(f string) (responseWriter, error) {
 	switch f {
-	case "file":
+	case fileOutput:
 		parentDir := "outputs"
 		switch app.timestamp {
 		case true:
@@ -28,7 +28,7 @@ func (app *appCfg) newResponseWriter(f string) (responseWriter, error) {
 		return &fileWriter{
 			parentDir,
 		}, nil
-	case "stdout":
+	case stdoutOutput:
 		return &consoleWriter{}, nil
 	}
 
