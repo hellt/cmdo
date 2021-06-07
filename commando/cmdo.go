@@ -91,7 +91,7 @@ func (app *appCfg) run() error {
 	wg := &sync.WaitGroup{}
 	wg.Add(len(i.Devices))
 	for n, d := range i.Devices {
-		go app.runCommands(wg, n, d, rCh)
+		go app.runCommands(n, d, rCh)
 
 		resp := <-rCh
 		go app.outputResult(wg, rw, n, d, resp)
@@ -107,11 +107,9 @@ func (app *appCfg) run() error {
 }
 
 func (app *appCfg) runCommands(
-	wg *sync.WaitGroup,
 	name string,
 	d *device,
 	rCh chan<- *base.MultiResponse) {
-
 	var driver *network.Driver
 	var err error
 
