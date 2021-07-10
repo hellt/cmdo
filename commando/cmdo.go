@@ -250,7 +250,7 @@ func (app *appCfg) runCommands(
 
 	o, err := app.loadOptions(d)
 	if err != nil {
-		log.Errorf("invalid transport type provided %s; error: %+v\n", err, name)
+		log.Errorf("failed to load credentials or transport options for %s; error: %+v\n", name, err)
 		return
 	}
 
