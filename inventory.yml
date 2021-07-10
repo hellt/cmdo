@@ -1,25 +1,42 @@
+credentials:
+  default:
+    username: admin
+    password: admin
+  eos:
+    username: commando
+    password: commando
+    secondary-password: supercommando
+
+transports:
+  default: {}
+  # default has the following default settings
+  # port: 22
+  # strict-key: false
+  # transport-type: standard
+  #
+  # optional settings
+  # ssh-config-file: /your/ssh/config/file
+  eos:
+    transport-type: system
+
 devices:
   sros:
     platform: nokia_sros
     address: clab-scrapli-sros
-    username: admin
-    password: admin
     send-commands:
       - show version
       - show router interface
   eos:
     platform: arista_eos
     address: clab-scrapli-ceos
-    username: admin
-    password: admin
+    credentials: eos
+    transport: eos
     send-commands:
       - show version
       - show uptime
   srlinux:
     platform: nokia_srlinux
     address: clab-scrapli-srlinux
-    username: admin
-    password: admin
     send-commands:
       - show version
       - show network-instance interfaces

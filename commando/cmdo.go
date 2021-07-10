@@ -39,36 +39,60 @@ var (
 	errNoUsernameDefined = errors.New("username was not provided. Use --username | -u to set it")
 	errNoPasswordDefined = errors.New("password was not provided. Use --passoword | -p to set it")
 	errNoCommandsDefined = errors.New("commands were not provided. Use --commands | -c to set a `::` delimited list of commands to run")
+
+	errInvalidCredentialsName = errors.New("invalid credentials name provided for host")
+	errInvalidTransportsName  = errors.New("invalid transport name provided for host")
+
+	errInvalidTransport = errors.New("invalid transport name provided in inventory. Transport should be one of: [standard, system]")
 )
 
 const (
 	fileOutput   = "file"
 	stdoutOutput = "stdout"
+	defaultName  = "default"
 )
 
 type inventory struct {
-	Devices map[string]*device `yaml:"devices,omitempty"`
+	Credentials map[string]*credentials `yaml:"credentials,omitempty"`
+	Transports  map[string]*transports  `yaml:"transports,omitempty"`
+	Devices     map[string]*device      `yaml:"devices,omitempty"`
 }
 
 type device struct {
 	Platform     string   `yaml:"platform,omitempty"`
 	Address      string   `yaml:"address,omitempty"`
-	Username     string   `yaml:"username,omitempty"`
-	Password     string   `yaml:"password,omitempty"`
+	Credentials  string   `yaml:"credentials,omitempty"`
+	Transport    string   `yaml:"transport,omitempty"`
 	SendCommands []string `yaml:"send-commands,omitempty"`
 }
 
+type credentials struct {
+	Username          string `yaml:"username,omitempty"`
+	Password          string `yaml:"password,omitempty"`
+	SecondaryPassword string `yaml:"secondary-password,omitempty"`
+	PrivateKey        string `yaml:"private-key,omitempty"`
+}
+
+type transports struct {
+	Port          int    `yaml:"port,omitempty"`
+	StrictKey     bool   `yaml:"strict-key,omitempty"`
+	SSHConfigFile string `yaml:"ssh-config-file,omitempty"`
+	TransportType string `yaml:"transport,omitempty"`
+}
+
 type appCfg struct {
-	inventory string // path to inventory file
-	output    string // output mode
-	timestamp bool   // append timestamp to output dir
-	outDir    string // output directory path
-	devFilter string // pattern
-	platform  string // platform name
-	address   string // device address
-	username  string // ssh username
-	password  string // ssh password
-	commands  string // commands to send
+	inventory   string                  // path to inventory file
+	credentials map[string]*credentials // credentials loaded from inventory
+	transports  map[string]*transports  // transports loaded from inventory
+	output      string                  // output mode
+	timestamp   bool                    // append timestamp to output dir
+	outDir      string                  // output directory path
+	devFilter   string                  // pattern
+	platform    string                  // platform name
+	address     string                  // device address
+	username    string                  // ssh username
+	password    string                  // ssh password
+	commands    string                  // commands to send
 }
 
 // run runs the commando.
@@ -112,6 +136,110 @@ func (app *appCfg) run() error {
 	return nil
 }
 
+func (app *appCfg) validTransport(t string) bool {
+	switch t {
+	case transport.SystemTransportName:
+		return true
+	case transport.StandardTransportName:
+		return true
+	default:
+		return false
+	}
+}
+
+func (app *appCfg) loadCredentials(o []base.Option, c string) ([]base.Option, error) {
+	creds, ok := app.credentials[c]
+	if !ok {
+		return o, errInvalidCredentialsName
+	}
+
+	if creds.Username != "" {
+		o = append(o, base.WithAuthUsername(creds.Username))
+	}
+
+	if creds.Password != "" {
+		o = append(o, base.WithAuthPassword(creds.Password))
+	}
+
+	if creds.SecondaryPassword != "" {
+		o = append(o, base.WithAuthSecondary(creds.SecondaryPassword))
+	}
+
+	if creds.PrivateKey != "" {
+		o = append(o, base.WithAuthPrivateKey(creds.PrivateKey))
+	}
+
+	return o, nil
+}
+
+func (app *appCfg) loadTransport(o []base.Option, t string) ([]base.Option, error) {
+	// default to strict key false and standard transport, so load those into options first
+	o = append(o, base.WithTransportType(transport.StandardTransportName), base.WithAuthStrictKey(false))
+
+	transp, ok := app.transports[t]
+	if !ok {
+		if t == defaultName {
+			// default can not exist in the inventory, we already set the default settings above
+			return o, nil
+		}
+
+		return o, errInvalidTransportsName
+	}
+
+	if transp.Port != 0 {
+		o = append(o, base.WithPort(transp.Port))
+	}
+
+	if transp.StrictKey {
+		o = append(o, base.WithAuthStrictKey(transp.StrictKey))
+	}
+
+	if transp.SSHConfigFile != "" {
+		o = append(o, base.WithSSHConfigFile(transp.SSHConfigFile))
+	}
+
+	if transp.TransportType != "" {
+		if !app.validTransport(transp.TransportType) {
+			return nil, errInvalidTransport
+		}
+
+		o = append(o, base.WithTransportType(transp.TransportType))
+	}
+
+	return o, nil
+}
+
+// loadOptions loads options from the provided inventory.
+func (app *appCfg) loadOptions(d *device) ([]base.Option, error) {
+	var o []base.Option
+
+	var err error
+
+	c := defaultName
+
+	if d.Credentials != "" {
+		c = d.Credentials
+	}
+
+	o, err = app.loadCredentials(o, c)
+	if err != nil {
+		return o, err
+	}
+
+	t := defaultName
+
+	if d.Transport != "" {
+		t = d.Transport
+	}
+
+	o, err = app.loadTransport(o, t)
+	if err != nil {
+		return o, err
+	}
+
+	return o, err
+}
+
 func (app *appCfg) runCommands(
 	name string,
 	d *device,
@@ -120,40 +248,46 @@ func (app *appCfg) runCommands(
 
 	var err error
 
+	o, err := app.loadOptions(d)
+	if err != nil {
+		log.Errorf("failed to load credentials or transport options for %s; error: %+v\n", name, err)
+		return
+	}
+
 	switch d.Platform {
 	case "nokia_srlinux":
 		driver, err = srlinux.NewSRLinuxDriver(
 			d.Address,
-			base.WithAuthStrictKey(false),
-			base.WithAuthUsername(d.Username),
-			base.WithAuthPassword(d.Password),
-			base.WithTransportType(transport.StandardTransportName),
+			o...,
 		)
 	default:
 		driver, err = core.NewCoreDriver(
 			d.Address,
 			d.Platform,
-			base.WithAuthStrictKey(false),
-			base.WithAuthUsername(d.Username),
-			base.WithAuthPassword(d.Password),
-			base.WithTransportType(transport.StandardTransportName),
+			o...,
 		)
 	}
 
 	if err != nil {
 		log.Errorf("failed to create driver for device %s; error: %+v\n", err, name)
+		rCh <- nil
+
 		return
 	}
 
 	err = driver.Open()
 	if err != nil {
 		log.Errorf("failed to open connection to device %s; error: %+v\n", err, name)
+		rCh <- nil
+
 		return
 	}
 
 	r, err := driver.SendCommands(d.SendCommands)
 	if err != nil {
 		log.Errorf("failed to send commands to device %s; error: %+v\n", err, name)
+		rCh <- nil
+
 		return
 	}
 
@@ -168,7 +302,7 @@ func (app *appCfg) outputResult(
 	r *base.MultiResponse) {
 	defer wg.Done()
 
-	if err := rw.WriteResponse(r, name, d, app); err != nil {
+	if err := rw.WriteResponse(r, name, d); err != nil {
 		log.Errorf("error while writing the response: %v", err)
 	}
 }
@@ -205,6 +339,9 @@ func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
 		return errNoDevices
 	}
 
+	app.credentials = i.Credentials
+	app.transports = i.Transports
+
 	return nil
 }
 
@@ -232,8 +369,6 @@ func (app *appCfg) loadInventoryFromFlags(i *inventory) error {
 	i.Devices[app.address] = &device{
 		Platform:     app.platform,
 		Address:      app.address,
-		Username:     app.username,
-		Password:     app.password,
 		SendCommands: cmds,
 	}
 

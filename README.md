@@ -43,10 +43,101 @@ output` directory.
   `cmdo -o stdout -a clab-scrapli-srlinux -u admin -p admin -k nokia_srlinux -c "show version :: show system aaa"`
 
 
-### Running commands in bulk
+## Inventory
 As indicated in the quickstart, `commando` can run commands against many devices as opposed to the _singe-device_ operation.
 
-For the _bulk_ mode the devices are expressed in the sort-of inventory. The inventory file schema is simple, the network devices are defined under `.devices` element with each device identified by `<device-name>`:
+For the _bulk_ mode the devices are expressed in the inventory file. The inventory file schema is simple, it consists of the following top-level elements:
+
+```yaml
+credentials: # container for credentials
+transports:  # optional container for transport options
+devices:     # here the devices connection details are
+```
+
+### Credentials
+Commando let's you define many credential parameters which you can later associate with any of the devices. For example, a credential config for access switches might differ from the core routers.
+
+```yaml
+credentials:
+  # this is a named credential config that you can refer to in the devices settings
+  switches:
+    username: admin
+    password: admin
+  routers:
+    username: ops
+    password: secret123
+
+devices:
+  sw1:
+    address: some.host.com
+    # credentials info from credentials containers named 'switches' will be used
+    credentials: switches
+  rtr1:
+    address: some.host2.com
+    # credentials info from credentials containers named 'routers' will be used
+    credentials: routers
+```
+
+If you create a credential named `default`, then you can omit specifying credentials in the device configuration, this will be applied by default:
+
+```yaml
+credentials:
+  default:
+    username: admin
+    password: admin
+
+devices:
+  sw1: # sw1 will use `default` credentials configuration
+    address: some.host.com
+```
+
+Here is a full list of credentials configuration options:
+
+```yaml
+credentials:
+  <name>:
+    username:
+    password:
+    secondary-password:
+    private-key: # takes a path to the private key
+```
+
+### Transports
+Different transports can be defined in the inventory and mapped to the devices to support flexible connectivity options.
+
+Transports are defined in the top level of the inventory:
+
+```yaml
+transports:
+  myssh:
+    port: 5622
+
+devices:
+  sw1: # sw1 will use port 5622 for SSH connection
+    address: some.host.com
+    transport: myssh
+```
+
+If the transport is not defined for a given device, the default transport options are assumed:
+
+* port 22
+* no strict host key checking
+* transport type - standard
+* ssh config file is not used
+
+Here is a full list of transport configuration options:
+
+```yaml
+credentials:
+  <name>:
+    port: # ssh port number to use
+    strict-key: # true or false; sets host key checking
+    transport-type: # `standard` or system. standard transport uses Go SSH client, `system` transport uses system's default SSH client (i.e. OpenSSH)
+    ssh-config-file: # takes a path to ssh config file. Can only be used if transport is set to `system`
+```
+
+### Devices
+The network devices are defined under `.devices` element with each device identified by a `<device-name>`:
 
 ```yaml
 devices:
@@ -55,21 +146,21 @@ devices:
   <deviceN-name>:
 ```
 
-Each device holds a number of options that define the device platform, auth parameters, and the commands to send:
+Each device holds a number of options that define the device platform, its address, and the commands to send:
 
 ```yaml
 devices:
   <device1-name>:
-   # platform is one of arista_eos, cisco_iosxe, cisco_nxos, cisco_iosxr,
-   # juniper_junos, nokia_sros, nokia_sros_classic, nokia_srlinux
-   platform: string 
-      address: string
-      username: string
-      password: string
-      send-commands:
-         - cmd1
-         - cmd2
-         - cmdN
+    # platform is one of arista_eos, cisco_iosxe, cisco_nxos, cisco_iosxr,
+    # juniper_junos, nokia_sros, nokia_sros_classic, nokia_srlinux
+    platform: string 
+    address: string
+    credentials: string # optional reference to the defined credentials
+    transport: string # optional reference to the defined transport options
+    send-commands:
+        - cmd1
+        - cmd2
+        - cmdN
 ```
 
 `send-commands` list holds a list of commands which will be send towards a device. Check out the attached [example inventory](inventory.yml) file to a reference.
