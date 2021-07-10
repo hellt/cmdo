@@ -12,8 +12,12 @@ import (
 	"github.com/scrapli/scrapligo/driver/base"
 )
 
+const (
+	filePermissions = 0755
+)
+
 type responseWriter interface {
-	WriteResponse(r *base.MultiResponse, name string, d *device, appCfg *appCfg) error
+	WriteResponse(r *base.MultiResponse, name string, d *device) error
 }
 
 func (app *appCfg) newResponseWriter(f string) responseWriter {
@@ -39,7 +43,14 @@ func (app *appCfg) newResponseWriter(f string) responseWriter {
 // consoleWriter writes the scrapli responses to the console.
 type consoleWriter struct{}
 
-func (w *consoleWriter) WriteResponse(r *base.MultiResponse, name string, d *device, appCfg *appCfg) error {
+func (w *consoleWriter) writeFailure(name string) error {
+	c := color.New(color.FgRed)
+	c.Fprintf(os.Stderr, "\n**************************\n%s failed\n**************************\n", name)
+
+	return nil
+}
+
+func (w *consoleWriter) writeSuccess(r *base.MultiResponse, name string, d *device) error {
 	c := color.New(color.FgGreen)
 	c.Fprintf(os.Stderr, "\n**************************\n%s\n**************************\n", name)
 
@@ -57,14 +68,22 @@ func (w *consoleWriter) WriteResponse(r *base.MultiResponse, name string, d *dev
 	return nil
 }
 
+func (w *consoleWriter) WriteResponse(r *base.MultiResponse, name string, d *device) error {
+	if r == nil {
+		return w.writeFailure(name)
+	}
+
+	return w.writeSuccess(r, name, d)
+}
+
 // fileWriter writes the scrapli responses to the files on disk.
 type fileWriter struct {
 	dir string // output dir name
 }
 
-func (w *fileWriter) WriteResponse(r *base.MultiResponse, name string, d *device, appCfg *appCfg) error {
+func (w *fileWriter) WriteResponse(r *base.MultiResponse, name string, d *device) error {
 	outDir := path.Join(w.dir, name)
-	if err := os.MkdirAll(outDir, 0755); err != nil {
+	if err := os.MkdirAll(outDir, filePermissions); err != nil {
 		return err
 	}
 
@@ -72,7 +91,7 @@ func (w *fileWriter) WriteResponse(r *base.MultiResponse, name string, d *device
 		c := sanitizeCmd(cmd)
 
 		rb := []byte(r.Responses[idx].Result)
-		if err := ioutil.WriteFile(path.Join(outDir, c), rb, 0755); err != nil { //nolint:gosec
+		if err := ioutil.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil { //nolint:gosec
 			return err
 		}
 	}
