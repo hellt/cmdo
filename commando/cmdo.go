@@ -53,8 +53,8 @@ const (
 )
 
 type inventory struct {
-	Credentials map[string]*credentials `yaml:",omitempty"`
-	Transports  map[string]*transports  `yaml:",omitempty"`
+	Credentials map[string]*credentials `yaml:"credentials,omitempty"`
+	Transports  map[string]*transports  `yaml:"transports,omitempty"`
 	Devices     map[string]*device      `yaml:"devices,omitempty"`
 }
 
