@@ -91,7 +91,7 @@ func (w *fileWriter) WriteResponse(r *base.MultiResponse, name string, d *device
 		c := sanitizeCmd(cmd)
 
 		rb := []byte(r.Responses[idx].Result)
-		if err := ioutil.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil { //nolint:gosec
+		if err := ioutil.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil {
 			return err
 		}
 	}
