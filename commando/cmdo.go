@@ -59,11 +59,14 @@ type inventory struct {
 }
 
 type device struct {
-	Platform     string   `yaml:"platform,omitempty"`
-	Address      string   `yaml:"address,omitempty"`
-	Credentials  string   `yaml:"credentials,omitempty"`
-	Transport    string   `yaml:"transport,omitempty"`
-	SendCommands []string `yaml:"send-commands,omitempty"`
+	Platform             string   `yaml:"platform,omitempty"`
+	Address              string   `yaml:"address,omitempty"`
+	Credentials          string   `yaml:"credentials,omitempty"`
+	Transport            string   `yaml:"transport,omitempty"`
+	SendCommands         []string `yaml:"send-commands,omitempty"`
+	SendCommandsFromFile string   `yaml:"send-commands-from-file,omitempty"`
+	SendConfigs          []string `yaml:"send-configs,omitempty"`
+	SendConfigsFromFile  string   `yaml:"send-configs-from-file,omitempty"`
 }
 
 type credentials struct {
@@ -110,7 +113,7 @@ func (app *appCfg) run() error {
 	}
 
 	rw := app.newResponseWriter(app.output)
-	rCh := make(chan *base.MultiResponse)
+	rCh := make(chan []*base.MultiResponse)
 
 	if app.output == fileOutput {
 		log.SetOutput(os.Stderr)
@@ -123,8 +126,8 @@ func (app *appCfg) run() error {
 	for n, d := range i.Devices {
 		go app.runCommands(n, d, rCh)
 
-		resp := <-rCh
-		go app.outputResult(wg, rw, n, d, resp)
+		resps := <-rCh
+		go app.outputResult(wg, rw, n, resps)
 	}
 
 	wg.Wait()
@@ -243,7 +246,7 @@ func (app *appCfg) loadOptions(d *device) ([]base.Option, error) {
 func (app *appCfg) runCommands(
 	name string,
 	d *device,
-	rCh chan<- *base.MultiResponse) {
+	rCh chan<- []*base.MultiResponse) {
 	var driver *network.Driver
 
 	var err error
@@ -283,26 +286,63 @@ func (app *appCfg) runCommands(
 		return
 	}
 
-	r, err := driver.SendCommands(d.SendCommands)
-	if err != nil {
-		log.Errorf("failed to send commands to device %s; error: %+v\n", err, name)
-		rCh <- nil
+	var responses []*base.MultiResponse
 
-		return
+	// when sending configs we do not print any responses, as typically configs do not produce any output
+	if d.SendConfigsFromFile != "" {
+		_, err := driver.SendConfigsFromFile(d.SendConfigsFromFile)
+		if err != nil {
+			log.Errorf("failed to send configs to device %s; error: %+v\n", err, name)
+			rCh <- nil
+
+			return
+		}
 	}
 
-	rCh <- r
+	if len(d.SendConfigs) != 0 {
+		_, err := driver.SendConfigs(d.SendConfigs)
+		if err != nil {
+			log.Errorf("failed to send configs to device %s; error: %+v\n", err, name)
+			rCh <- nil
+
+			return
+		}
+	}
+
+	if d.SendCommandsFromFile != "" {
+		r, err := driver.SendCommandsFromFile(d.SendCommandsFromFile)
+		if err != nil {
+			log.Errorf("failed to send commands to device %s; error: %+v\n", err, name)
+			rCh <- nil
+
+			return
+		}
+
+		responses = append(responses, r)
+	}
+
+	if len(d.SendCommands) != 0 {
+		r, err := driver.SendCommands(d.SendCommands)
+		if err != nil {
+			log.Errorf("failed to send commands to device %s; error: %+v\n", err, name)
+			rCh <- nil
+
+			return
+		}
+
+		responses = append(responses, r)
+	}
+	rCh <- responses
 }
 
 func (app *appCfg) outputResult(
 	wg *sync.WaitGroup,
 	rw responseWriter,
 	name string,
-	d *device,
-	r *base.MultiResponse) {
+	r []*base.MultiResponse) {
 	defer wg.Done()
 
-	if err := rw.WriteResponse(r, name, d); err != nil {
+	if err := rw.WriteResponse(r, name); err != nil {
 		log.Errorf("error while writing the response: %v", err)
 	}
 }

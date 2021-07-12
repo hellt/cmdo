@@ -17,7 +17,7 @@ const (
 )
 
 type responseWriter interface {
-	WriteResponse(r *base.MultiResponse, name string, d *device) error
+	WriteResponse(r []*base.MultiResponse, name string) error
 }
 
 func (app *appCfg) newResponseWriter(f string) responseWriter {
@@ -50,30 +50,32 @@ func (w *consoleWriter) writeFailure(name string) error {
 	return nil
 }
 
-func (w *consoleWriter) writeSuccess(r *base.MultiResponse, name string, d *device) error {
+func (w *consoleWriter) writeSuccess(r []*base.MultiResponse, name string) error {
 	c := color.New(color.FgGreen)
 	c.Fprintf(os.Stderr, "\n**************************\n%s\n**************************\n", name)
 
-	for idx, cmd := range d.SendCommands {
-		c := color.New(color.Bold)
-		c.Fprintf(os.Stderr, "\n-- %s:\n", cmd)
+	for _, mr := range r {
+		for _, resp := range mr.Responses {
+			c := color.New(color.Bold)
+			c.Fprintf(os.Stderr, "\n-- %s:\n", resp.ChannelInput)
 
-		if r.Responses[idx].Failed {
-			color.Set(color.FgRed)
+			if resp.Failed {
+				color.Set(color.FgRed)
+			}
+
+			fmt.Println(resp.Result)
 		}
-
-		fmt.Println(r.Responses[idx].Result)
 	}
 
 	return nil
 }
 
-func (w *consoleWriter) WriteResponse(r *base.MultiResponse, name string, d *device) error {
+func (w *consoleWriter) WriteResponse(r []*base.MultiResponse, name string) error {
 	if r == nil {
 		return w.writeFailure(name)
 	}
 
-	return w.writeSuccess(r, name, d)
+	return w.writeSuccess(r, name)
 }
 
 // fileWriter writes the scrapli responses to the files on disk.
@@ -81,18 +83,20 @@ type fileWriter struct {
 	dir string // output dir name
 }
 
-func (w *fileWriter) WriteResponse(r *base.MultiResponse, name string, d *device) error {
+func (w *fileWriter) WriteResponse(r []*base.MultiResponse, name string) error {
 	outDir := path.Join(w.dir, name)
 	if err := os.MkdirAll(outDir, filePermissions); err != nil {
 		return err
 	}
 
-	for idx, cmd := range d.SendCommands {
-		c := sanitizeCmd(cmd)
+	for _, mr := range r {
+		for _, resp := range mr.Responses {
+			c := sanitizeCmd(resp.ChannelInput)
 
-		rb := []byte(r.Responses[idx].Result)
-		if err := ioutil.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil {
-			return err
+			rb := []byte(resp.Result)
+			if err := ioutil.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil {
+				return err
+			}
 		}
 	}
 

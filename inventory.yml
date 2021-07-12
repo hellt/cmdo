@@ -31,12 +31,16 @@ devices:
     address: clab-scrapli-ceos
     credentials: eos
     transport: eos
+    send-commands-from-file: somefile.txt
     send-commands:
       - show version
       - show uptime
   srlinux:
     platform: nokia_srlinux
     address: clab-scrapli-srlinux
+    send-commands:
+      - /system information location "commando"
+      - commit now
     send-commands:
       - show version
       - show network-instance interfaces
