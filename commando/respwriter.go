@@ -45,7 +45,11 @@ type consoleWriter struct{}
 
 func (w *consoleWriter) writeFailure(name string) error {
 	c := color.New(color.FgRed)
-	c.Fprintf(os.Stderr, "\n**************************\n%s failed\n**************************\n", name)
+	c.Fprintf(
+		os.Stderr,
+		"\n**************************\n%s failed\n**************************\n",
+		name,
+	)
 
 	return nil
 }
