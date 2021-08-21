@@ -170,6 +170,17 @@ devices:
     send-configs:
       - cmd1
       - cmdN
+    cfg-operations:
+      # Note: cfg operations currently supported only on: arista_eos, cisco_iosxe,
+      # cisco_nxos, cisco_iosxr, juniper_junos
+      - type: load-config
+        replace: false
+        diff: true
+        commit: false
+        # Note: there is also a "config-from-file" option to load configurations from a file
+        config: "interface loopback1\ndescription tacocat"
+      - type: get-config
+        source: running
 ```
 
 `send-commands` list holds a list of non-configuration commands which will be send towards a device. A non configuration command is a command that doesn't require to have a configuration mode enabled on a device. A typical example is a `show <something>` command.  
@@ -186,10 +197,11 @@ Entering in the config mode is handled by commando, so your config commands does
 
 The order these options are processed in:
 
-1. send-configs-from-file
-2. send-configs
-3. send-commands-from-file
-4. send-commands
+1. "cfg" operations
+2. send-configs-from-file
+3. send-configs
+4. send-commands-from-file
+5. send-commands
 
 
 Check out the attached [example inventory](inventory.yml) file for reference.

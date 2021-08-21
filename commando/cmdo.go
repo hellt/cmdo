@@ -6,7 +6,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/scrapli/scrapligo/driver/base"
+	"github.com/scrapli/scrapligo/cfg"
+
 	"github.com/scrapli/scrapligo/driver/network"
 	log "github.com/sirupsen/logrus"
 )
@@ -57,15 +58,15 @@ type inventory struct {
 }
 
 type device struct {
-	Platform             string     `yaml:"platform,omitempty"`
-	Address              string     `yaml:"address,omitempty"`
-	Credentials          string     `yaml:"credentials,omitempty"`
-	Transport            string     `yaml:"transport,omitempty"`
-	SendCommands         []string   `yaml:"send-commands,omitempty"`
-	SendCommandsFromFile string     `yaml:"send-commands-from-file,omitempty"`
-	SendConfigs          []string   `yaml:"send-configs,omitempty"`
-	SendConfigsFromFile  string     `yaml:"send-configs-from-file,omitempty"`
-	CfgConfig            *cfgConfig `yaml:"cfg-configs,omitempty"`
+	Platform             string          `yaml:"platform,omitempty"`
+	Address              string          `yaml:"address,omitempty"`
+	Credentials          string          `yaml:"credentials,omitempty"`
+	Transport            string          `yaml:"transport,omitempty"`
+	SendCommands         []string        `yaml:"send-commands,omitempty"`
+	SendCommandsFromFile string          `yaml:"send-commands-from-file,omitempty"`
+	SendConfigs          []string        `yaml:"send-configs,omitempty"`
+	SendConfigsFromFile  string          `yaml:"send-configs-from-file,omitempty"`
+	CfgOperations        []*cfgOperation `yaml:"cfg-operations,omitempty"`
 }
 
 type credentials struct {
@@ -82,13 +83,14 @@ type transports struct {
 	TransportType string `yaml:"transport,omitempty"`
 }
 
-type cfgConfig struct {
-	Config         string
-	ConfigFromFile string
-	Replace        bool
-	Diff           bool
-	Commit         bool
-	Abort          bool
+type cfgOperation struct {
+	OperationType  string `yaml:"type,omitempty"`
+	Source         string `yaml:"source,omitempty"`
+	Config         string `yaml:"config,omitempty"`
+	ConfigFromFile string `yaml:"config-from-file,omitempty"`
+	Replace        bool   `yaml:"replace,omitempty"`
+	Diff           bool   `yaml:"diff,omitempty"`
+	Commit         bool   `yaml:"commit,omitempty"`
 }
 
 type appCfg struct {
@@ -121,7 +123,7 @@ func (app *appCfg) run() error {
 	}
 
 	rw := app.newResponseWriter(app.output)
-	rCh := make(chan []*base.MultiResponse)
+	rCh := make(chan []interface{})
 
 	if app.output == fileOutput {
 		log.SetOutput(os.Stderr)
@@ -147,12 +149,124 @@ func (app *appCfg) run() error {
 	return nil
 }
 
+func runCfgGetConfig(name string, c *cfg.Cfg, op *cfgOperation) (*cfg.Response, error) {
+	source := "running"
+	if op.Source != "" {
+		source = op.Source
+	}
+
+	r, err := c.GetConfig(source)
+	if err != nil {
+		log.Errorf("get-config operation failed for device %s; error: %+v\n", name, err)
+
+		return nil, err
+	}
+
+	return r, nil
+}
+
+func runCfgLoadConfig(name string, c *cfg.Cfg, op *cfgOperation) ([]interface{}, error) {
+	var responses []interface{}
+
+	var r *cfg.Response
+
+	var err error
+
+	if op.Config != "" {
+		_, err = c.LoadConfig(op.Config, op.Replace)
+	} else if op.ConfigFromFile != "" {
+		_, err = c.LoadConfigFromFile(op.ConfigFromFile, op.Replace)
+	}
+
+	if err != nil {
+		log.Errorf("load-config operation failed for device %s; error: %+v\n", name, err)
+
+		return nil, err
+	}
+
+	if op.Diff {
+		dr, diffErr := c.DiffConfig()
+		if diffErr != nil {
+			log.Errorf("diff-config operation failed for device %s; error: %+v\n", name, diffErr)
+
+			return nil, diffErr
+		}
+
+		responses = append(responses, dr)
+	}
+
+	if op.Commit {
+		r, err = c.CommitConfig()
+		if err != nil {
+			log.Errorf("commit-config operation failed for device %s; error: %+v\n", name, err)
+
+			return nil, err
+		}
+
+		responses = append(responses, r)
+	} else {
+		_, err = c.AbortConfig()
+		if err != nil {
+			log.Errorf("abort-config operation failed for device %s; error: %+v\n", name, err)
+
+			return nil, err
+		}
+	}
+
+	return responses, nil
+}
+
+func runCfg(name string, d *device, driver *network.Driver) ([]interface{}, error) {
+	if d.CfgOperations == nil {
+		return nil, nil
+	}
+
+	c, err := cfg.NewCfgDriver(driver, d.Platform)
+	if err != nil {
+		log.Errorf("failed to create cfg connection for device %s; error: %+v\n", name, err)
+
+		return nil, err
+	}
+
+	err = c.Prepare()
+	if err != nil {
+		log.Errorf("failed to prepare cfg session for device %s; error: %+v\n", name, err)
+
+		return nil, err
+	}
+
+	var responses []interface{}
+
+	for _, op := range d.CfgOperations {
+		switch op.OperationType {
+		case "get-config":
+			r, opErr := runCfgGetConfig(name, c, op)
+			if opErr != nil {
+				return nil, opErr
+			}
+
+			responses = append(responses, r)
+		case "load-config":
+			r, opErr := runCfgLoadConfig(name, c, op)
+			if opErr != nil {
+				return nil, opErr
+			}
+
+			responses = append(responses, r...)
+		default:
+			log.Errorf("invalid operation type '%s' for device %s\n", op.OperationType, name)
+		}
+	}
+
+	return responses, nil
+}
+
 func runConfigs(name string, d *device, driver *network.Driver) error {
 	// when sending configs we do not print any responses, as typically configs do not produce any output
 	if d.SendConfigsFromFile != "" {
 		_, err := driver.SendConfigsFromFile(d.SendConfigsFromFile)
 		if err != nil {
-			log.Errorf("failed to send configs to device %s; error: %+v\n", err, name)
+			log.Errorf("failed to send configs to device %s; error: %+v\n", name, err)
 
 			return err
 		}
@@ -161,7 +275,7 @@ func runConfigs(name string, d *device, driver *network.Driver) error {
 	if len(d.SendConfigs) != 0 {
 		_, err := driver.SendConfigs(d.SendConfigs)
 		if err != nil {
-			log.Errorf("failed to send configs to device %s; error: %+v\n", err, name)
+			log.Errorf("failed to send configs to device %s; error: %+v\n", name, err)
 
 			return err
 		}
@@ -170,13 +284,13 @@ func runConfigs(name string, d *device, driver *network.Driver) error {
 	return nil
 }
 
-func runCommands(name string, d *device, driver *network.Driver) ([]*base.MultiResponse, error) {
-	var responses []*base.MultiResponse
+func runCommands(name string, d *device, driver *network.Driver) ([]interface{}, error) {
+	var responses []interface{}
 
 	if d.SendCommandsFromFile != "" {
 		r, err := driver.SendCommandsFromFile(d.SendCommandsFromFile)
 		if err != nil {
-			log.Errorf("failed to send commands to device %s; error: %+v\n", err, name)
+			log.Errorf("failed to send commands to device %s; error: %+v\n", name, err)
 
 			return nil, err
 		}
@@ -187,7 +301,7 @@ func runCommands(name string, d *device, driver *network.Driver) ([]*base.MultiR
 	if len(d.SendCommands) != 0 {
 		r, err := driver.SendCommands(d.SendCommands)
 		if err != nil {
-			log.Errorf("failed to send commands to device %s; error: %+v\n", err, name)
+			log.Errorf("failed to send commands to device %s; error: %+v\n", name, err)
 
 			return nil, err
 		}
@@ -201,13 +315,24 @@ func runCommands(name string, d *device, driver *network.Driver) ([]*base.MultiR
 func (app *appCfg) runOperations(
 	name string,
 	d *device,
-	rCh chan<- []*base.MultiResponse) {
+	rCh chan<- []interface{}) {
 	driver, err := app.openCoreConn(name, d)
 	if err != nil {
 		rCh <- nil
 
 		return
 	}
+
+	var responses []interface{}
+
+	cfgResponses, err := runCfg(name, d, driver)
+	if err != nil {
+		rCh <- nil
+
+		return
+	}
+
+	responses = append(responses, cfgResponses...)
 
 	err = runConfigs(name, d, driver)
 	if err != nil {
@@ -216,12 +341,14 @@ func (app *appCfg) runOperations(
 		return
 	}
 
-	responses, err := runCommands(name, d, driver)
+	cmdResponses, err := runCommands(name, d, driver)
 	if err != nil {
 		rCh <- nil
 
 		return
 	}
+
+	responses = append(responses, cmdResponses...)
 
 	rCh <- responses
 }
@@ -230,7 +357,7 @@ func (app *appCfg) outputResult(
 	wg *sync.WaitGroup,
 	rw responseWriter,
 	name string,
-	r []*base.MultiResponse) {
+	r []interface{}) {
 	defer wg.Done()
 
 	if err := rw.WriteResponse(r, name); err != nil {

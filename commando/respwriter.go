@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scrapli/scrapligo/cfg"
+
 	"github.com/fatih/color"
 	"github.com/scrapli/scrapligo/driver/base"
 )
@@ -17,7 +19,7 @@ const (
 )
 
 type responseWriter interface {
-	WriteResponse(r []*base.MultiResponse, name string) error
+	WriteResponse(r []interface{}, name string) error
 }
 
 func (app *appCfg) newResponseWriter(f string) responseWriter {
@@ -54,27 +56,48 @@ func (w *consoleWriter) writeFailure(name string) error {
 	return nil
 }
 
-func (w *consoleWriter) writeSuccess(r []*base.MultiResponse, name string) error {
+func (w *consoleWriter) writeSuccess(r []interface{}, name string) error {
 	c := color.New(color.FgGreen)
 	c.Fprintf(os.Stderr, "\n**************************\n%s\n**************************\n", name)
 
 	for _, mr := range r {
-		for _, resp := range mr.Responses {
-			c := color.New(color.Bold)
-			c.Fprintf(os.Stderr, "\n-- %s:\n", resp.ChannelInput)
+		switch respObj := mr.(type) {
+		case *base.MultiResponse:
+			for _, resp := range respObj.Responses {
+				c := color.New(color.Bold)
+				c.Fprintf(os.Stderr, "\n-- %s:\n", resp.ChannelInput)
 
-			if resp.Failed {
+				if resp.Failed {
+					color.Set(color.FgRed)
+				}
+
+				fmt.Println(resp.Result)
+			}
+		case *cfg.Response:
+			c := color.New(color.Bold)
+			c.Fprintf(os.Stderr, "\n-- cfg-%s:\n", respObj.OperationType)
+
+			if respObj.Failed {
 				color.Set(color.FgRed)
 			}
 
-			fmt.Println(resp.Result)
+			fmt.Println(respObj.Result)
+		case *cfg.DiffResponse:
+			c := color.New(color.Bold)
+			c.Fprint(os.Stderr, "\n-- cfg-DiffConfig:\n")
+
+			if respObj.Failed {
+				color.Set(color.FgRed)
+			}
+
+			fmt.Println(respObj.DeviceDiff)
 		}
 	}
 
 	return nil
 }
 
-func (w *consoleWriter) WriteResponse(r []*base.MultiResponse, name string) error {
+func (w *consoleWriter) WriteResponse(r []interface{}, name string) error {
 	if r == nil {
 		return w.writeFailure(name)
 	}
@@ -87,20 +110,27 @@ type fileWriter struct {
 	dir string // output dir name
 }
 
-func (w *fileWriter) WriteResponse(r []*base.MultiResponse, name string) error {
+func (w *fileWriter) WriteResponse(r []interface{}, name string) error {
 	outDir := path.Join(w.dir, name)
 	if err := os.MkdirAll(outDir, filePermissions); err != nil {
 		return err
 	}
 
 	for _, mr := range r {
-		for _, resp := range mr.Responses {
-			c := sanitizeCmd(resp.ChannelInput)
+		switch respObj := mr.(type) {
+		case *base.MultiResponse:
+			for _, resp := range respObj.Responses {
+				c := sanitizeCmd(resp.ChannelInput)
 
-			rb := []byte(resp.Result)
-			if err := ioutil.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil {
-				return err
+				rb := []byte(resp.Result)
+				if err := ioutil.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil {
+					return err
+				}
 			}
+		case *cfg.Response:
+			fmt.Printf("GOT CFG RESPONSE, DUNNO HOW TO HANDLE YET!\n")
+		case *cfg.DiffResponse:
+			fmt.Printf("GOT DIFF RESPONSE, DUNNO HOW TO HANDLE YET!\n")
 		}
 	}
 
