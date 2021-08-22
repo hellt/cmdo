@@ -3,20 +3,13 @@ package commando
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"regexp"
-	"strings"
-
 	"sync"
 
-	"github.com/scrapli/scrapligo/driver/base"
-	"github.com/scrapli/scrapligo/driver/core"
+	"github.com/scrapli/scrapligo/cfg"
+
 	"github.com/scrapli/scrapligo/driver/network"
-	"github.com/scrapli/scrapligo/transport"
 	log "github.com/sirupsen/logrus"
-	"github.com/srl-labs/srlinux-scrapli"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -34,16 +27,22 @@ var (
 	}
 
 	errNoDevices         = errors.New("no devices to send commands to")
-	errNoPlatformDefined = fmt.Errorf("platform is not set, use --platform | -k <platform> to set one of the supported platforms: %q",
-		supportedPlatforms)
+	errNoPlatformDefined = fmt.Errorf(
+		"platform is not set, use --platform | -k <platform> to set one of the supported platforms: %q",
+		supportedPlatforms,
+	)
 	errNoUsernameDefined = errors.New("username was not provided. Use --username | -u to set it")
 	errNoPasswordDefined = errors.New("password was not provided. Use --passoword | -p to set it")
-	errNoCommandsDefined = errors.New("commands were not provided. Use --commands | -c to set a `::` delimited list of commands to run")
+	errNoCommandsDefined = errors.New(
+		"commands were not provided. Use --commands | -c to set a `::` delimited list of commands to run",
+	)
 
 	errInvalidCredentialsName = errors.New("invalid credentials name provided for host")
 	errInvalidTransportsName  = errors.New("invalid transport name provided for host")
 
-	errInvalidTransport = errors.New("invalid transport name provided in inventory. Transport should be one of: [standard, system]")
+	errInvalidTransport = errors.New(
+		"invalid transport name provided in inventory. Transport should be one of: [standard, system]",
+	)
 )
 
 const (
@@ -59,11 +58,15 @@ type inventory struct {
 }
 
 type device struct {
-	Platform     string   `yaml:"platform,omitempty"`
-	Address      string   `yaml:"address,omitempty"`
-	Credentials  string   `yaml:"credentials,omitempty"`
-	Transport    string   `yaml:"transport,omitempty"`
-	SendCommands []string `yaml:"send-commands,omitempty"`
+	Platform             string          `yaml:"platform,omitempty"`
+	Address              string          `yaml:"address,omitempty"`
+	Credentials          string          `yaml:"credentials,omitempty"`
+	Transport            string          `yaml:"transport,omitempty"`
+	SendCommands         []string        `yaml:"send-commands,omitempty"`
+	SendCommandsFromFile string          `yaml:"send-commands-from-file,omitempty"`
+	SendConfigs          []string        `yaml:"send-configs,omitempty"`
+	SendConfigsFromFile  string          `yaml:"send-configs-from-file,omitempty"`
+	CfgOperations        []*cfgOperation `yaml:"cfg-operations,omitempty"`
 }
 
 type credentials struct {
@@ -78,6 +81,16 @@ type transports struct {
 	StrictKey     bool   `yaml:"strict-key,omitempty"`
 	SSHConfigFile string `yaml:"ssh-config-file,omitempty"`
 	TransportType string `yaml:"transport,omitempty"`
+}
+
+type cfgOperation struct {
+	OperationType  string `yaml:"type,omitempty"`
+	Source         string `yaml:"source,omitempty"`
+	Config         string `yaml:"config,omitempty"`
+	ConfigFromFile string `yaml:"config-from-file,omitempty"`
+	Replace        bool   `yaml:"replace,omitempty"`
+	Diff           bool   `yaml:"diff,omitempty"`
+	Commit         bool   `yaml:"commit,omitempty"`
 }
 
 type appCfg struct {
@@ -110,7 +123,7 @@ func (app *appCfg) run() error {
 	}
 
 	rw := app.newResponseWriter(app.output)
-	rCh := make(chan *base.MultiResponse)
+	rCh := make(chan []interface{})
 
 	if app.output == fileOutput {
 		log.SetOutput(os.Stderr)
@@ -121,10 +134,10 @@ func (app *appCfg) run() error {
 	wg.Add(len(i.Devices))
 
 	for n, d := range i.Devices {
-		go app.runCommands(n, d, rCh)
+		go app.runOperations(n, d, rCh)
 
-		resp := <-rCh
-		go app.outputResult(wg, rw, n, d, resp)
+		resps := <-rCh
+		go app.outputResult(wg, rw, n, resps)
 	}
 
 	wg.Wait()
@@ -136,241 +149,218 @@ func (app *appCfg) run() error {
 	return nil
 }
 
-func (app *appCfg) validTransport(t string) bool {
-	switch t {
-	case transport.SystemTransportName:
-		return true
-	case transport.StandardTransportName:
-		return true
-	default:
-		return false
+func runCfgGetConfig(name string, c *cfg.Cfg, op *cfgOperation) (*cfg.Response, error) {
+	source := "running"
+	if op.Source != "" {
+		source = op.Source
 	}
+
+	r, err := c.GetConfig(source)
+	if err != nil {
+		log.Errorf("get-config operation failed for device %s; error: %+v\n", name, err)
+
+		return nil, err
+	}
+
+	return r, nil
 }
 
-func (app *appCfg) loadCredentials(o []base.Option, c string) ([]base.Option, error) {
-	creds, ok := app.credentials[c]
-	if !ok {
-		return o, errInvalidCredentialsName
-	}
+func runCfgLoadConfig(name string, c *cfg.Cfg, op *cfgOperation) ([]interface{}, error) {
+	var responses []interface{}
 
-	if creds.Username != "" {
-		o = append(o, base.WithAuthUsername(creds.Username))
-	}
-
-	if creds.Password != "" {
-		o = append(o, base.WithAuthPassword(creds.Password))
-	}
-
-	if creds.SecondaryPassword != "" {
-		o = append(o, base.WithAuthSecondary(creds.SecondaryPassword))
-	}
-
-	if creds.PrivateKey != "" {
-		o = append(o, base.WithAuthPrivateKey(creds.PrivateKey))
-	}
-
-	return o, nil
-}
-
-func (app *appCfg) loadTransport(o []base.Option, t string) ([]base.Option, error) {
-	// default to strict key false and standard transport, so load those into options first
-	o = append(o, base.WithTransportType(transport.StandardTransportName), base.WithAuthStrictKey(false))
-
-	transp, ok := app.transports[t]
-	if !ok {
-		if t == defaultName {
-			// default can not exist in the inventory, we already set the default settings above
-			return o, nil
-		}
-
-		return o, errInvalidTransportsName
-	}
-
-	if transp.Port != 0 {
-		o = append(o, base.WithPort(transp.Port))
-	}
-
-	if transp.StrictKey {
-		o = append(o, base.WithAuthStrictKey(transp.StrictKey))
-	}
-
-	if transp.SSHConfigFile != "" {
-		o = append(o, base.WithSSHConfigFile(transp.SSHConfigFile))
-	}
-
-	if transp.TransportType != "" {
-		if !app.validTransport(transp.TransportType) {
-			return nil, errInvalidTransport
-		}
-
-		o = append(o, base.WithTransportType(transp.TransportType))
-	}
-
-	return o, nil
-}
-
-// loadOptions loads options from the provided inventory.
-func (app *appCfg) loadOptions(d *device) ([]base.Option, error) {
-	var o []base.Option
+	var r *cfg.Response
 
 	var err error
 
-	c := defaultName
-
-	if d.Credentials != "" {
-		c = d.Credentials
+	if op.Config != "" {
+		_, err = c.LoadConfig(op.Config, op.Replace)
+	} else if op.ConfigFromFile != "" {
+		_, err = c.LoadConfigFromFile(op.ConfigFromFile, op.Replace)
 	}
 
-	o, err = app.loadCredentials(o, c)
 	if err != nil {
-		return o, err
+		log.Errorf("load-config operation failed for device %s; error: %+v\n", name, err)
+
+		return nil, err
 	}
 
-	t := defaultName
+	if op.Diff {
+		dr, diffErr := c.DiffConfig()
+		if diffErr != nil {
+			log.Errorf("diff-config operation failed for device %s; error: %+v\n", name, diffErr)
 
-	if d.Transport != "" {
-		t = d.Transport
+			return nil, diffErr
+		}
+
+		responses = append(responses, dr)
 	}
 
-	o, err = app.loadTransport(o, t)
-	if err != nil {
-		return o, err
+	if op.Commit {
+		r, err = c.CommitConfig()
+		if err != nil {
+			log.Errorf("commit-config operation failed for device %s; error: %+v\n", name, err)
+
+			return nil, err
+		}
+
+		responses = append(responses, r)
+	} else {
+		_, err = c.AbortConfig()
+		if err != nil {
+			log.Errorf("abort-config operation failed for device %s; error: %+v\n", name, err)
+
+			return nil, err
+		}
 	}
 
-	return o, err
+	return responses, nil
 }
 
-func (app *appCfg) runCommands(
+func runCfg(name string, d *device, driver *network.Driver) ([]interface{}, error) {
+	if d.CfgOperations == nil {
+		return nil, nil
+	}
+
+	c, err := cfg.NewCfgDriver(driver, d.Platform)
+	if err != nil {
+		log.Errorf("failed to create cfg connection for device %s; error: %+v\n", name, err)
+
+		return nil, err
+	}
+
+	err = c.Prepare()
+	if err != nil {
+		log.Errorf("failed to prepare cfg session for device %s; error: %+v\n", name, err)
+
+		return nil, err
+	}
+
+	var responses []interface{}
+
+	for _, op := range d.CfgOperations {
+		switch op.OperationType {
+		case "get-config":
+			r, opErr := runCfgGetConfig(name, c, op)
+			if opErr != nil {
+				return nil, opErr
+			}
+
+			responses = append(responses, r)
+		case "load-config":
+			r, opErr := runCfgLoadConfig(name, c, op)
+			if opErr != nil {
+				return nil, opErr
+			}
+
+			responses = append(responses, r...)
+		default:
+			log.Errorf("invalid operation type '%s' for device %s\n", op.OperationType, name)
+		}
+	}
+
+	return responses, nil
+}
+
+func runConfigs(name string, d *device, driver *network.Driver) error {
+	// when sending configs we do not print any responses, as typically configs do not produce any output
+	if d.SendConfigsFromFile != "" {
+		_, err := driver.SendConfigsFromFile(d.SendConfigsFromFile)
+		if err != nil {
+			log.Errorf("failed to send configs to device %s; error: %+v\n", name, err)
+
+			return err
+		}
+	}
+
+	if len(d.SendConfigs) != 0 {
+		_, err := driver.SendConfigs(d.SendConfigs)
+		if err != nil {
+			log.Errorf("failed to send configs to device %s; error: %+v\n", name, err)
+
+			return err
+		}
+	}
+
+	return nil
+}
+
+func runCommands(name string, d *device, driver *network.Driver) ([]interface{}, error) {
+	var responses []interface{}
+
+	if d.SendCommandsFromFile != "" {
+		r, err := driver.SendCommandsFromFile(d.SendCommandsFromFile)
+		if err != nil {
+			log.Errorf("failed to send commands to device %s; error: %+v\n", name, err)
+
+			return nil, err
+		}
+
+		responses = append(responses, r)
+	}
+
+	if len(d.SendCommands) != 0 {
+		r, err := driver.SendCommands(d.SendCommands)
+		if err != nil {
+			log.Errorf("failed to send commands to device %s; error: %+v\n", name, err)
+
+			return nil, err
+		}
+
+		responses = append(responses, r)
+	}
+
+	return responses, nil
+}
+
+func (app *appCfg) runOperations(
 	name string,
 	d *device,
-	rCh chan<- *base.MultiResponse) {
-	var driver *network.Driver
-
-	var err error
-
-	o, err := app.loadOptions(d)
+	rCh chan<- []interface{}) {
+	driver, err := app.openCoreConn(name, d)
 	if err != nil {
-		log.Errorf("failed to load credentials or transport options for %s; error: %+v\n", name, err)
-		return
-	}
-
-	switch d.Platform {
-	case "nokia_srlinux":
-		driver, err = srlinux.NewSRLinuxDriver(
-			d.Address,
-			o...,
-		)
-	default:
-		driver, err = core.NewCoreDriver(
-			d.Address,
-			d.Platform,
-			o...,
-		)
-	}
-
-	if err != nil {
-		log.Errorf("failed to create driver for device %s; error: %+v\n", err, name)
 		rCh <- nil
 
 		return
 	}
 
-	err = driver.Open()
+	var responses []interface{}
+
+	cfgResponses, err := runCfg(name, d, driver)
 	if err != nil {
-		log.Errorf("failed to open connection to device %s; error: %+v\n", err, name)
 		rCh <- nil
 
 		return
 	}
 
-	r, err := driver.SendCommands(d.SendCommands)
+	responses = append(responses, cfgResponses...)
+
+	err = runConfigs(name, d, driver)
 	if err != nil {
-		log.Errorf("failed to send commands to device %s; error: %+v\n", err, name)
 		rCh <- nil
 
 		return
 	}
 
-	rCh <- r
+	cmdResponses, err := runCommands(name, d, driver)
+	if err != nil {
+		rCh <- nil
+
+		return
+	}
+
+	responses = append(responses, cmdResponses...)
+
+	rCh <- responses
 }
 
 func (app *appCfg) outputResult(
 	wg *sync.WaitGroup,
 	rw responseWriter,
 	name string,
-	d *device,
-	r *base.MultiResponse) {
+	r []interface{}) {
 	defer wg.Done()
 
-	if err := rw.WriteResponse(r, name, d); err != nil {
+	if err := rw.WriteResponse(r, name); err != nil {
 		log.Errorf("error while writing the response: %v", err)
 	}
-}
-
-// filterDevices will remove the devices which names do not match the passed filter.
-func filterDevices(i *inventory, f string) {
-	if f == "" {
-		return
-	}
-
-	fRe := regexp.MustCompile(f)
-
-	for n := range i.Devices {
-		if !fRe.Match([]byte(n)) {
-			delete(i.Devices, n)
-		}
-	}
-}
-
-func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
-	yamlFile, err := ioutil.ReadFile(app.inventory)
-	if err != nil {
-		return err
-	}
-
-	err = yaml.UnmarshalStrict(yamlFile, i)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	filterDevices(i, app.devFilter)
-
-	if len(i.Devices) == 0 {
-		return errNoDevices
-	}
-
-	app.credentials = i.Credentials
-	app.transports = i.Transports
-
-	return nil
-}
-
-func (app *appCfg) loadInventoryFromFlags(i *inventory) error {
-	if app.platform == "" {
-		return errNoPlatformDefined
-	}
-
-	if app.username == "" {
-		return errNoUsernameDefined
-	}
-
-	if app.password == "" {
-		return errNoPasswordDefined
-	}
-
-	if app.commands == "" {
-		return errNoCommandsDefined
-	}
-
-	cmds := strings.Split(app.commands, "::")
-
-	i.Devices = map[string]*device{}
-
-	i.Devices[app.address] = &device{
-		Platform:     app.platform,
-		Address:      app.address,
-		SendCommands: cmds,
-	}
-
-	return nil
 }

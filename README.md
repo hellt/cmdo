@@ -4,7 +4,11 @@
 [![Github all releases](https://img.shields.io/github/downloads/hellt/cmdo/total.svg?style=flat-square&color=424f35&labelColor=bec8d2)](https://github.com/hellt/cmdo/releases/)
 ---
 
-Commando is a tiny tool that enables users to collect command outputs from a single or a multiple networking devices defined in an inventory file.
+Commando is a tiny tool that enables users 
+* to collect command outputs from a single or a multiple networking devices defined in an inventory file
+* send file-based or string-based configs towards the devices defined in the inventory file
+
+all that with zero dependencies and a 1-click installation.
 
 [![asciicast](https://asciinema.org/a/417792.svg)](https://asciinema.org/a/417792)
 
@@ -157,13 +161,50 @@ devices:
     address: string
     credentials: string # optional reference to the defined credentials
     transport: string # optional reference to the defined transport options
+    send-commands-from-file: /path/to/file/with/show-commands.txt
     send-commands:
-        - cmd1
-        - cmd2
-        - cmdN
+      - cmd1
+      - cmd2
+      - cmdN
+    send-configs-from-file: /path/to/file/with/config-commands.txt
+    send-configs:
+      - cmd1
+      - cmdN
+    cfg-operations:
+      # Note: cfg operations currently supported only on: arista_eos, cisco_iosxe,
+      # cisco_nxos, cisco_iosxr, juniper_junos
+      - type: load-config
+        replace: false
+        diff: true
+        commit: false
+        # Note: there is also a "config-from-file" option to load configurations from a file
+        config: "interface loopback1\ndescription tacocat"
+      - type: get-config
+        source: running
 ```
 
-`send-commands` list holds a list of commands which will be send towards a device. Check out the attached [example inventory](inventory.yml) file to a reference.
+`send-commands` list holds a list of non-configuration commands which will be send towards a device. A non configuration command is a command that doesn't require to have a configuration mode enabled on a device. A typical example is a `show <something>` command.  
+Outputs from each command of a `send-commands` list will be saved/printed.
+
+If you want to keep the commands in a separate file, then you can use `send-commands-from-file` element which takes a path to a said file. You can combine `send-commands` and `send-commands-from-file` in a single device.
+
+In contrast with `send-commands*` options, it is possible to tell `commando` to send configuration commands. For that we have the following configuration elements:
+
+* `send-configs` - takes a list of configuration commands and executes then without printing/saving any output the commands may return
+* `send-configs-from-file` - does the same, but the commands are kept in a file.
+
+Entering in the config mode is handled by commando, so your config commands doesn't need to have any `conf t` or `configure private` commands. Just remember to add the `commit` command if your device needs it.
+
+The order these options are processed in:
+
+1. "cfg" operations
+2. send-configs-from-file
+3. send-configs
+4. send-commands-from-file
+5. send-commands
+
+
+Check out the attached [example inventory](inventory.yml) file for reference.
 
 ## Configuration options
 
