@@ -21,8 +21,10 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/russross/blackfriday/v2 v2.0.1 h1:lPqVAte+HuHNfhJ/0LC98ESWRz8afy9tM/0RK8m9o+Q=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/scrapli/scrapligo v0.0.0-20210601185115-acff0f312680/go.mod h1:itZE+qsyMvCMnxccsxMX4ATFqVLDIG/Mw4po4msqwpo=
-github.com/scrapli/scrapligo v0.0.0-20210821175721-39f27f3d8e89 h1:rug+AbhjrFqbkeFjfZz7wQ2X6yIeZOC9daso3p0xaic=
-github.com/scrapli/scrapligo v0.0.0-20210821175721-39f27f3d8e89/go.mod h1:0tHMgiCiTuWOvSceFU7klaYThXvRZNvc7k+fmQrtH54=
+github.com/scrapli/scrapligo v0.0.0-20210828223731-aa2b82d0b593 h1:JAe+I0cjTpk4CIIWaFO5NaLIFkEuVsywlh4Yb9gzcnM=
+github.com/scrapli/scrapligo v0.0.0-20210828223731-aa2b82d0b593/go.mod h1:0tHMgiCiTuWOvSceFU7klaYThXvRZNvc7k+fmQrtH54=
+github.com/scrapli/scrapligo v0.1.0 h1:6bAtdQY9Phnacy811lf8kgoWqIMYAM/E3b5N07wVbyU=
+github.com/scrapli/scrapligo v0.1.0/go.mod h1:0tHMgiCiTuWOvSceFU7klaYThXvRZNvc7k+fmQrtH54=
 github.com/shurcooL/sanitized_anchor_name v1.0.0 h1:PdmoCO6wvbs+7yrJyMORt4/BmY5IYyJwS/kOiWx8mHo=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/sirikothe/gotextfsm v1.0.0 h1:4kKwbUziG9G+31PfLY+vI3FzYK/kcByh4ndT3NyPMkc=

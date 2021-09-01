@@ -8,10 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/scrapli/scrapligo/driver/base"
+
 	"github.com/scrapli/scrapligo/cfg"
 
 	"github.com/fatih/color"
-	"github.com/scrapli/scrapligo/driver/base"
 )
 
 const (
@@ -67,7 +68,7 @@ func (w *consoleWriter) writeSuccess(r []interface{}, name string) error {
 				c := color.New(color.Bold)
 				c.Fprintf(os.Stderr, "\n-- %s:\n", resp.ChannelInput)
 
-				if resp.Failed {
+				if resp.Failed != nil {
 					color.Set(color.FgRed)
 				}
 
@@ -77,7 +78,7 @@ func (w *consoleWriter) writeSuccess(r []interface{}, name string) error {
 			c := color.New(color.Bold)
 			c.Fprintf(os.Stderr, "\n-- cfg-%s:\n", respObj.OperationType)
 
-			if respObj.Failed {
+			if respObj.Failed != nil {
 				color.Set(color.FgRed)
 			}
 
@@ -86,7 +87,7 @@ func (w *consoleWriter) writeSuccess(r []interface{}, name string) error {
 			c := color.New(color.Bold)
 			c.Fprint(os.Stderr, "\n-- cfg-DiffConfig:\n")
 
-			if respObj.Failed {
+			if respObj.Failed != nil {
 				color.Set(color.FgRed)
 			}
 
@@ -128,9 +129,18 @@ func (w *fileWriter) WriteResponse(r []interface{}, name string) error {
 				}
 			}
 		case *cfg.Response:
-			fmt.Printf("GOT CFG RESPONSE, DUNNO HOW TO HANDLE YET!\n")
+			rb := []byte(respObj.Result)
+			if err := ioutil.WriteFile(path.Join(outDir, respObj.OperationType), rb, filePermissions); err != nil {
+				return err
+			}
 		case *cfg.DiffResponse:
-			fmt.Printf("GOT DIFF RESPONSE, DUNNO HOW TO HANDLE YET!\n")
+			rb := []byte(
+				fmt.Sprintf("Device Diff:\n%s\n\nSide By Side Diff:\n%s\n\nUnified Diff:\n%s",
+					respObj.DeviceDiff, respObj.SideBySideDiff(), respObj.UnifiedDiff()),
+			)
+			if err := ioutil.WriteFile(path.Join(outDir, respObj.OperationType), rb, filePermissions); err != nil {
+				return err
+			}
 		}
 	}
 
