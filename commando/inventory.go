@@ -49,6 +49,14 @@ func (app *appCfg) loadInventoryFromFlags(i *inventory) error {
 		return errNoCommandsDefined
 	}
 
+	app.credentials = map[string]*credentials{
+		defaultName: {
+			Username:          app.username,
+			Password:          app.password,
+			SecondaryPassword: app.password,
+		},
+	}
+
 	cmds := strings.Split(app.commands, "::")
 
 	i.Devices = map[string]*device{}
