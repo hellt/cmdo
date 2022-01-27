@@ -80,7 +80,7 @@ type transports struct {
 	Port          int    `yaml:"port,omitempty"`
 	StrictKey     bool   `yaml:"strict-key,omitempty"`
 	SSHConfigFile string `yaml:"ssh-config-file,omitempty"`
-	TransportType string `yaml:"transport,omitempty"`
+	TransportType string `yaml:"transport-type,omitempty"`
 }
 
 type cfgOperation struct {
