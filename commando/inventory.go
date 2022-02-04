@@ -32,7 +32,7 @@ func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
 	cmds := strings.Split(app.commands, "::")
 
 	for _, device := range i.Devices {
-		device.SendCommands = append(device.SendCommands, cmds...)
+		device.SendCommands = cmds
 	}
 
 	return nil
