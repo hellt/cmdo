@@ -29,6 +29,12 @@ func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
 	app.credentials = i.Credentials
 	app.transports = i.Transports
 
+	cmds := strings.Split(app.commands, "::")
+
+	for _, device := range i.Devices {
+		device.SendCommands = cmds
+	}
+
 	return nil
 }
 
