@@ -4,3 +4,6 @@ outputs*
 dist
 cmdo
 private
+# ignore clab dirs
+clab-*
+.*.clab.y?ml
