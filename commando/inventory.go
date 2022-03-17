@@ -1,7 +1,7 @@
 package commando
 
 import (
-	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
@@ -10,7 +10,7 @@ import (
 )
 
 func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
-	yamlFile, err := ioutil.ReadFile(app.inventory)
+	yamlFile, err := os.ReadFile(app.inventory)
 	if err != nil {
 		return err
 	}
@@ -29,10 +29,13 @@ func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
 	app.credentials = i.Credentials
 	app.transports = i.Transports
 
-	cmds := strings.Split(app.commands, "::")
+	// user-provided commands (via cli flag) take precedence over inventory
+	if app.commands != "" {
+		cmds := strings.Split(app.commands, "::")
 
-	for _, device := range i.Devices {
-		device.SendCommands = cmds
+		for _, device := range i.Devices {
+			device.SendCommands = cmds
+		}
 	}
 
 	return nil
@@ -85,7 +88,7 @@ func filterDevices(i *inventory, f string) {
 	fRe := regexp.MustCompile(f)
 
 	for n := range i.Devices {
-		if !fRe.Match([]byte(n)) {
+		if !fRe.MatchString(n) {
 			delete(i.Devices, n)
 		}
 	}

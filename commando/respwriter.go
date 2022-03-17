@@ -2,7 +2,6 @@ package commando
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -124,13 +123,13 @@ func (w *fileWriter) WriteResponse(r []interface{}, name string) error {
 				c := sanitizeCmd(resp.ChannelInput)
 
 				rb := []byte(resp.Result)
-				if err := ioutil.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil {
+				if err := os.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil {
 					return err
 				}
 			}
 		case *cfg.Response:
 			rb := []byte(respObj.Result)
-			if err := ioutil.WriteFile(path.Join(outDir, respObj.OperationType), rb, filePermissions); err != nil {
+			if err := os.WriteFile(path.Join(outDir, respObj.OperationType), rb, filePermissions); err != nil {
 				return err
 			}
 		case *cfg.DiffResponse:
@@ -138,7 +137,7 @@ func (w *fileWriter) WriteResponse(r []interface{}, name string) error {
 				fmt.Sprintf("Device Diff:\n%s\n\nSide By Side Diff:\n%s\n\nUnified Diff:\n%s",
 					respObj.DeviceDiff, respObj.SideBySideDiff(), respObj.UnifiedDiff()),
 			)
-			if err := ioutil.WriteFile(path.Join(outDir, respObj.OperationType), rb, filePermissions); err != nil {
+			if err := os.WriteFile(path.Join(outDir, respObj.OperationType), rb, filePermissions); err != nil {
 				return err
 			}
 		}
