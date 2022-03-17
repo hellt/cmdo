@@ -85,7 +85,7 @@ func filterDevices(i *inventory, f string) {
 	fRe := regexp.MustCompile(f)
 
 	for n := range i.Devices {
-		if !fRe.Match([]byte(n)) {
+		if !fRe.MatchString(n) {
 			delete(i.Devices, n)
 		}
 	}
