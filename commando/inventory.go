@@ -1,7 +1,7 @@
 package commando
 
 import (
-	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 
@@ -10,7 +10,7 @@ import (
 )
 
 func (app *appCfg) loadInventoryFromYAML(i *inventory) error {
-	yamlFile, err := ioutil.ReadFile(app.inventory)
+	yamlFile, err := os.ReadFile(app.inventory)
 	if err != nil {
 		return err
 	}
