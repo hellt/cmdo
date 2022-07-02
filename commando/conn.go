@@ -1,58 +1,57 @@
 package commando
 
 import (
-	"github.com/scrapli/scrapligo/driver/base"
-	"github.com/scrapli/scrapligo/driver/core"
 	"github.com/scrapli/scrapligo/driver/network"
+	"github.com/scrapli/scrapligo/driver/options"
+	"github.com/scrapli/scrapligo/platform"
 	"github.com/scrapli/scrapligo/transport"
+	"github.com/scrapli/scrapligo/util"
 	log "github.com/sirupsen/logrus"
-	"github.com/srl-labs/srlinux-scrapli"
 )
 
 func (app *appCfg) validTransport(t string) bool {
 	switch t {
-	case transport.SystemTransportName:
+	case transport.SystemTransport:
 		return true
-	case transport.StandardTransportName:
+	case transport.StandardTransport:
 		return true
-	case transport.TelnetTransportName:
+	case transport.TelnetTransport:
 		return true
 	default:
 		return false
 	}
 }
 
-func (app *appCfg) loadCredentials(o []base.Option, c string) ([]base.Option, error) {
+func (app *appCfg) loadCredentials(o []util.Option, c string) ([]util.Option, error) {
 	creds, ok := app.credentials[c]
 	if !ok {
 		return o, errInvalidCredentialsName
 	}
 
 	if creds.Username != "" {
-		o = append(o, base.WithAuthUsername(creds.Username))
+		o = append(o, options.WithAuthUsername(creds.Username))
 	}
 
 	if creds.Password != "" {
-		o = append(o, base.WithAuthPassword(creds.Password))
+		o = append(o, options.WithAuthPassword(creds.Password))
 	}
 
 	if creds.SecondaryPassword != "" {
-		o = append(o, base.WithAuthSecondary(creds.SecondaryPassword))
+		o = append(o, options.WithAuthSecondary(creds.SecondaryPassword))
 	}
 
 	if creds.PrivateKey != "" {
-		o = append(o, base.WithAuthPrivateKey(creds.PrivateKey))
+		o = append(o, options.WithAuthPrivateKey(creds.PrivateKey, ""))
 	}
 
 	return o, nil
 }
 
-func (app *appCfg) loadTransport(o []base.Option, t string) ([]base.Option, error) {
-	// default to strict key false and standard transport, so load those into options first
+func (app *appCfg) loadTransport(o []util.Option, t string) ([]util.Option, error) {
+	// default to standard transport, so load those into options first
 	o = append(
 		o,
-		base.WithTransportType(transport.StandardTransportName),
-		base.WithAuthStrictKey(false),
+		options.WithTransportType(transport.StandardTransport),
 	)
 
 	transp, ok := app.transports[t]
@@ -66,15 +65,15 @@ func (app *appCfg) loadTransport(o []base.Option, t string) ([]base.Option, erro
 	}
 
 	if transp.Port != 0 {
-		o = append(o, base.WithPort(transp.Port))
+		o = append(o, options.WithPort(transp.Port))
 	}
 
-	if transp.StrictKey {
-		o = append(o, base.WithAuthStrictKey(transp.StrictKey))
+	if !transp.StrictKey {
+		o = append(o, options.WithAuthNoStrictKey())
 	}
 
 	if transp.SSHConfigFile != "" {
-		o = append(o, base.WithSSHConfigFile(transp.SSHConfigFile))
+		o = append(o, options.WithSSHConfigFile(transp.SSHConfigFile))
 	}
 
 	if transp.TransportType != "" {
@@ -82,15 +81,15 @@ func (app *appCfg) loadTransport(o []base.Option, t string) ([]base.Option, erro
 			return nil, errInvalidTransport
 		}
 
-		o = append(o, base.WithTransportType(transp.TransportType))
+		o = append(o, options.WithTransportType(transp.TransportType))
 	}
 
 	return o, nil
 }
 
 // loadOptions loads options from the provided inventory.
-func (app *appCfg) loadOptions(d *device) ([]base.Option, error) {
-	var o []base.Option
+func (app *appCfg) loadOptions(d *device) ([]util.Option, error) {
+	var o []util.Option
 
 	var err error
 
@@ -133,22 +132,19 @@ func (app *appCfg) openCoreConn(name string, d *device) (*network.Driver, error)
 		return nil, err
 	}
 
-	switch d.Platform {
-	case "nokia_srlinux":
-		driver, err = srlinux.NewSRLinuxDriver(
-			d.Address,
-			o...,
-		)
-	default:
-		driver, err = core.NewCoreDriver(
-			d.Address,
-			d.Platform,
-			o...,
-		)
+	plat, err := platform.NewPlatform(
+		d.Platform,
+		d.Address,
+		o...,
+	)
+	if err != nil {
+		log.Errorf("failed to create platform instance for device %s; error: %+v\n", err, name)
+		return nil, err
 	}
 
+	driver, err = plat.GetNetworkDriver()
 	if err != nil {
-		log.Errorf("failed to create driver for device %s; error: %+v\n", err, name)
+		log.Errorf("failed to create driver instance for device %s; error: %+v\n", err, name)
 		return nil, err
 	}
 

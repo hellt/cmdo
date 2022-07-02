@@ -7,9 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/scrapli/scrapligo/driver/base"
-
-	"github.com/scrapli/scrapligo/cfg"
+	"github.com/scrapli/scrapligo/response"
+	cfgresponse "github.com/scrapli/scrapligocfg/response"
 
 	"github.com/fatih/color"
 )
@@ -62,10 +61,10 @@ func (w *consoleWriter) writeSuccess(r []interface{}, name string) error {
 
 	for _, mr := range r {
 		switch respObj := mr.(type) {
-		case *base.MultiResponse:
+		case *response.MultiResponse:
 			for _, resp := range respObj.Responses {
 				c := color.New(color.Bold)
-				c.Fprintf(os.Stderr, "\n-- %s:\n", resp.ChannelInput)
+				c.Fprintf(os.Stderr, "\n-- %s:\n", resp.Input)
 
 				if resp.Failed != nil {
 					color.Set(color.FgRed)
@@ -73,16 +72,16 @@ func (w *consoleWriter) writeSuccess(r []interface{}, name string) error {
 
 				fmt.Println(resp.Result)
 			}
-		case *cfg.Response:
+		case *cfgresponse.Response:
 			c := color.New(color.Bold)
-			c.Fprintf(os.Stderr, "\n-- cfg-%s:\n", respObj.OperationType)
+			c.Fprintf(os.Stderr, "\n-- cfg-%s:\n", respObj.Op)
 
 			if respObj.Failed != nil {
 				color.Set(color.FgRed)
 			}
 
 			fmt.Println(respObj.Result)
-		case *cfg.DiffResponse:
+		case *cfgresponse.DiffResponse:
 			c := color.New(color.Bold)
 			c.Fprint(os.Stderr, "\n-- cfg-DiffConfig:\n")
 
@@ -118,26 +117,26 @@ func (w *fileWriter) WriteResponse(r []interface{}, name string) error {
 
 	for _, mr := range r {
 		switch respObj := mr.(type) {
-		case *base.MultiResponse:
+		case *response.MultiResponse:
 			for _, resp := range respObj.Responses {
-				c := sanitizeCmd(resp.ChannelInput)
+				c := sanitizeCmd(resp.Input)
 
 				rb := []byte(resp.Result)
 				if err := os.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil {
 					return err
 				}
 			}
-		case *cfg.Response:
+		case *cfgresponse.Response:
 			rb := []byte(respObj.Result)
-			if err := os.WriteFile(path.Join(outDir, respObj.OperationType), rb, filePermissions); err != nil {
+			if err := os.WriteFile(path.Join(outDir, respObj.Op), rb, filePermissions); err != nil {
 				return err
 			}
-		case *cfg.DiffResponse:
+		case *cfgresponse.DiffResponse:
 			rb := []byte(
 				fmt.Sprintf("Device Diff:\n%s\n\nSide By Side Diff:\n%s\n\nUnified Diff:\n%s",
 					respObj.DeviceDiff, respObj.SideBySideDiff(), respObj.UnifiedDiff()),
 			)
-			if err := os.WriteFile(path.Join(outDir, respObj.OperationType), rb, filePermissions); err != nil {
+			if err := os.WriteFile(path.Join(outDir, respObj.Op), rb, filePermissions); err != nil {
 				return err
 			}
 		}

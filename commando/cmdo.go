@@ -6,7 +6,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/scrapli/scrapligo/cfg"
+	"github.com/scrapli/scrapligocfg/response"
+
+	"github.com/scrapli/scrapligocfg"
 
 	"github.com/scrapli/scrapligo/driver/network"
 	log "github.com/sirupsen/logrus"
@@ -149,7 +151,11 @@ func (app *appCfg) run() error {
 	return nil
 }
 
-func runCfgGetConfig(name string, c *cfg.Cfg, op *cfgOperation) (*cfg.Response, error) {
+func runCfgGetConfig(
+	name string,
+	c *scrapligocfg.Cfg,
+	op *cfgOperation,
+) (*response.Response, error) {
 	source := "running"
 	if op.Source != "" {
 		source = op.Source
@@ -165,10 +171,10 @@ func runCfgGetConfig(name string, c *cfg.Cfg, op *cfgOperation) (*cfg.Response, 
 	return r, nil
 }
 
-func runCfgLoadConfig(name string, c *cfg.Cfg, op *cfgOperation) ([]interface{}, error) {
+func runCfgLoadConfig(name string, c *scrapligocfg.Cfg, op *cfgOperation) ([]interface{}, error) {
 	var responses []interface{}
 
-	var r *cfg.Response
+	var r *response.Response
 
 	var err error
 
@@ -185,7 +191,7 @@ func runCfgLoadConfig(name string, c *cfg.Cfg, op *cfgOperation) ([]interface{},
 	}
 
 	if op.Diff {
-		dr, diffErr := c.DiffConfig()
+		dr, diffErr := c.DiffConfig("running")
 		if diffErr != nil {
 			log.Errorf("diff-config operation failed for device %s; error: %+v\n", name, diffErr)
 
@@ -221,7 +227,7 @@ func runCfg(name string, d *device, driver *network.Driver) ([]interface{}, erro
 		return nil, nil
 	}
 
-	c, err := cfg.NewCfgDriver(driver, d.Platform)
+	c, err := scrapligocfg.NewCfg(driver, d.Platform)
 	if err != nil {
 		log.Errorf("failed to create cfg connection for device %s; error: %+v\n", name, err)
 
