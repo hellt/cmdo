@@ -32,6 +32,8 @@ github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQD
 github.com/scrapli/scrapligo v1.0.0/go.mod h1:jvRMdb90MNnswMiku8UNXj8JZaOIPhwhcqqFwr9qeoY=
 github.com/scrapli/scrapligo v1.0.1 h1:rsjf71gVWAA47HhZznTklGtW0xuhP6dD6cWdovHHLvo=
 github.com/scrapli/scrapligo v1.0.1/go.mod h1:jvRMdb90MNnswMiku8UNXj8JZaOIPhwhcqqFwr9qeoY=
+github.com/scrapli/scrapligo v1.0.2 h1:IzZPtfuuINvewd72Jjt91fr43s3y1shI4rXWnKmpC7A=
+github.com/scrapli/scrapligo v1.0.2/go.mod h1:jvRMdb90MNnswMiku8UNXj8JZaOIPhwhcqqFwr9qeoY=
 github.com/scrapli/scrapligocfg v1.0.0 h1:540SuGqqM6rKN87SLCfR54IageQ6s3a/ZOycGRgbbak=
 github.com/scrapli/scrapligocfg v1.0.0/go.mod h1:9+6k9dQeIqEZEg6EK5YXEjuVb7h+nvvel26CY1RGjy4=
 github.com/shurcooL/sanitized_anchor_name v1.0.0 h1:PdmoCO6wvbs+7yrJyMORt4/BmY5IYyJwS/kOiWx8mHo=
