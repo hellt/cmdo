@@ -10,6 +10,7 @@
 : ${PKG_INSTALL_DIR:="/usr/bin/"}
 : ${REPO_NAME:="hellt/cmdo"}
 : ${REPO_URL:="https://github.com/$REPO_NAME"}
+: ${REPO_API_URL:="https://api.github.com/repos/$REPO_NAME"}
 : ${PROJECT_URL:="https://github.com/$REPO_NAME"}
 
 # detectArch discovers the architecture for this system.
@@ -86,13 +87,13 @@ setDesiredVersion() {
         # when desired version is not provided
         # get latest tag from the gh releases
         if type "curl" &>/dev/null; then
-            local latest_release_url=$(curl -s $REPO_URL/releases/latest | cut -d '"' -f 2)
+            local latest_release_url=$(curl -s $REPO_API_URL/releases/latest | sed '5q;d' | cut -d '"' -f 4)
             TAG=$(echo $latest_release_url | cut -d '"' -f 2 | awk -F "/" '{print $NF}')
             # tag with stripped `v` prefix
             TAG_WO_VER=$(echo "${TAG}" | cut -c 2-)
         elif type "wget" &>/dev/null; then
             # get latest release info and get 5th line out of the response to get the URL
-            local latest_release_url=$(wget -q https://api.github.com/repos/$REPO_NAME/releases/latest -O- | sed '5q;d' | cut -d '"' -f 4)
+            local latest_release_url=$(wget -q $REPO_API_URL/releases/latest -O- | sed '5q;d' | cut -d '"' -f 4)
             TAG=$(echo $latest_release_url | cut -d '"' -f 2 | awk -F "/" '{print $NF}')
             TAG_WO_VER=$(echo "${TAG}" | cut -c 2-)
         fi
@@ -101,12 +102,12 @@ setDesiredVersion() {
         TAG_WO_VER=$(echo "${TAG}" | cut -c 2-)
 
         if type "curl" &>/dev/null; then
-            if ! curl -s -o /dev/null --fail https://api.github.com/repos/$REPO_NAME/releases/tags/$DESIRED_VERSION; then
+            if ! curl -s -o /dev/null --fail $REPO_API_URL/releases/tags/$DESIRED_VERSION; then
                 echo "release $DESIRED_VERSION not found"
                 exit 1
             fi
         elif type "wget" &>/dev/null; then
-            if ! wget -q https://api.github.com/repos/$REPO_NAME/releases/tags/$DESIRED_VERSION; then
+            if ! wget -q $REPO_API_URL/releases/tags/$DESIRED_VERSION; then
                 echo "release $DESIRED_VERSION not found"
                 exit 1
             fi

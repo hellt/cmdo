@@ -132,7 +132,7 @@ If the transport is not defined for a given device, the default transport option
 Here is a full list of transport configuration options:
 
 ```yaml
-credentials:
+transports:
   <name>:
     port: # ssh port number to use
     strict-key: # true or false; sets host key checking
