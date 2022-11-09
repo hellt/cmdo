@@ -72,6 +72,7 @@ type device struct {
 }
 
 type credentials struct {
+	Prompt            bool   `yaml:"prompt,omitempty"`
 	Username          string `yaml:"username,omitempty"`
 	Password          string `yaml:"password,omitempty"`
 	SecondaryPassword string `yaml:"secondary-password,omitempty"`

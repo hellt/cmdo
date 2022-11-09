@@ -8,7 +8,7 @@
 : ${VERIFY_CHECKSUM:="false"}
 : ${BIN_INSTALL_DIR:=$(pwd)}
 : ${PKG_INSTALL_DIR:="/usr/bin/"}
-: ${REPO_NAME:="hellt/cmdo"}
+: ${REPO_NAME:="glspi/cmdo"}
 : ${REPO_URL:="https://github.com/$REPO_NAME"}
 : ${REPO_API_URL:="https://api.github.com/repos/$REPO_NAME"}
 : ${PROJECT_URL:="https://github.com/$REPO_NAME"}
