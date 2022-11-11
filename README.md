@@ -4,6 +4,8 @@
 [![Github all releases](https://img.shields.io/github/downloads/hellt/cmdo/total.svg?style=flat-square&color=424f35&labelColor=bec8d2)](https://github.com/hellt/cmdo/releases/)
 ---
 
+** FORKED FROM: https://github.com/hellt/cmdo
+
 Commando is a tiny tool that enables users 
 * to collect command outputs from a single or a multiple networking devices defined in an inventory file
 * send file-based or string-based configs towards the devices defined in the inventory file

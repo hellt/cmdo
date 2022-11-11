@@ -92,5 +92,5 @@ func NewCLI() *cli.App {
 func showVersion(c *cli.Context) {
 	fmt.Printf("    version: %s\n", version)
 	fmt.Printf("     commit: %s\n", commit)
-	fmt.Printf("     source: %s\n", "https://github.com/hellt/cmdo")
+	fmt.Printf("     source: %s\n", "https://github.com/glspi/cmdo")
 }

@@ -1,0 +1,28 @@
+name: CICD-Workflow
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+env:
+  GOVER: 1.19.x
+  CGO_ENABLED: 0
+
+jobs:
+  build-and-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GOVER }}
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

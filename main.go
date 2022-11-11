@@ -5,7 +5,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/hellt/cmdo/commando"
+	"github.com/glspi/cmdo/commando"
 )
 
 func main() {
