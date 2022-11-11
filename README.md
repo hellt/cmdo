@@ -1,7 +1,7 @@
 <p align=center><img src=cmdo_2.svg?sanitize=true/></p>
 
-[![Go Report](https://img.shields.io/badge/go%20report-A%2B-blue?style=flat-square&color=424f35&labelColor=bec8d2)](https://goreportcard.com/report/github.com/hellt/cmdo)
-[![Github all releases](https://img.shields.io/github/downloads/hellt/cmdo/total.svg?style=flat-square&color=424f35&labelColor=bec8d2)](https://github.com/hellt/cmdo/releases/)
+[![Go Report](https://img.shields.io/badge/go%20report-A%2B-blue?style=flat-square&color=424f35&labelColor=bec8d2)](https://goreportcard.com/report/github.com/glspi/cmdo)
+[![Github all releases](https://img.shields.io/github/downloads/glspi/cmdo/total.svg?style=flat-square&color=424f35&labelColor=bec8d2)](https://github.com/glspi/cmdo/releases/)
 ---
 
 ** FORKED FROM: https://github.com/hellt/cmdo
@@ -20,15 +20,15 @@ Using the sudo-less installation script makes it easy to download pre-built bina
 
 ```bash
 # for linux and darwin OSes
-bash -c "$(curl -sL https://raw.githubusercontent.com/hellt/cmdo/master/get.sh)"
+bash -c "$(curl -sL https://raw.githubusercontent.com/glspi/cmdo/master/get.sh)"
 ```
 
-Windows users are encouraged to use WSL, but if it is not possible, the `.exe` file can be found in [Releases](https://github.com/hellt/cmdo/releases) section.
+Windows users are encouraged to use WSL, but if it is not possible, the `.exe` file can be found in [Releases](https://github.com/glspi/cmdo/releases) section.
 
 Linux users can leverage pre-built deb/rpm packages that are also available in the Releases section. Either download the package manually, or set `--use-pkg` flag with the install script:
 
 ```
-bash -c "$(curl -sL https://raw.githubusercontent.com/hellt/cmdo/master/get.sh)" -- --use-pkg
+bash -c "$(curl -sL https://raw.githubusercontent.com/glspi/cmdo/master/get.sh)" -- --use-pkg
 ```
 
 ## Quickstart
