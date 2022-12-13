@@ -130,7 +130,9 @@ func (app *appCfg) run() error {
 	}
 
 	rw := app.newResponseWriter(app.output)
-	rCh := make(chan respTuple)
+
+	respCh := make(chan respTuple)
+
 	doneCh := make(chan interface{})
 
 	if app.output == fileOutput {
@@ -142,10 +144,10 @@ func (app *appCfg) run() error {
 	wg.Add(len(i.Devices))
 
 	for n, d := range i.Devices {
-		go app.runOperations(n, d, rCh)
+		go app.runOperations(n, d, respCh)
 	}
 
-	go app.outputResult(wg, rw, rCh, doneCh)
+	go app.outputResult(wg, rw, respCh, doneCh)
 
 	wg.Wait()
 
