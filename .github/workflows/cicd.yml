@@ -9,7 +9,7 @@ on:
   pull_request:
 
 env:
-  GOVER: 1.16.4
+  GOVER: 1.18.4
   CGO_ENABLED: 0
 
 jobs:
