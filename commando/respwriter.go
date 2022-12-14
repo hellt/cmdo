@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"time"
 
@@ -119,7 +120,7 @@ func (w *fileWriter) WriteResponse(r []interface{}, name string) error {
 		switch respObj := mr.(type) {
 		case *response.MultiResponse:
 			for _, resp := range respObj.Responses {
-				c := sanitizeCmd(resp.Input)
+				c := sanitizeFileName(resp.Input) // replace unsafe chars from a file name
 
 				rb := []byte(resp.Result)
 				if err := os.WriteFile(path.Join(outDir, c), rb, filePermissions); err != nil {
@@ -145,12 +146,16 @@ func (w *fileWriter) WriteResponse(r []interface{}, name string) error {
 	return nil
 }
 
-func sanitizeCmd(s string) string {
+// sanitizeFileName ensures that file name doesn't contain invalid characters.
+func sanitizeFileName(s string) string {
+	// remove quotes and commas first
 	r := strings.NewReplacer(
-		"/", "-",
-		`\`, "-",
 		`"`, ``,
-		` `, `-`)
+		`'`, ``,
+		`,`, ``)
 
-	return r.Replace(s)
+	s = r.Replace(s)
+
+	re := regexp.MustCompile(`[^0-9A-Za-z\s\.\_\-]+`)
+	return re.ReplaceAllString(s, "-")
 }
