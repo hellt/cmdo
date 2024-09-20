@@ -155,6 +155,9 @@ func sanitizeFileName(s string) string {
 		`,`, ``)
 
 	s = r.Replace(s)
+	
+	// remove all leading and trailing spaces for the filename
+	s = strings.TrimSpace(s)
 
 	re := regexp.MustCompile(`[^0-9A-Za-z.\_\-]+`)
 
