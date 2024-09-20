@@ -156,7 +156,7 @@ func sanitizeFileName(s string) string {
 
 	s = r.Replace(s)
 
-	re := regexp.MustCompile(`[^0-9A-Za-z\s.\_\-]+`)
+	re := regexp.MustCompile(`[^0-9A-Za-z\\s.\_\-]+`)
 
 	return re.ReplaceAllString(s, "-")
 }
