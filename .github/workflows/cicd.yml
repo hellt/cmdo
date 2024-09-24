@@ -30,7 +30,7 @@ jobs:
       - name: set up go lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.49
+          version: v1.52.2
 
   build-and-release:
     runs-on: ubuntu-latest
